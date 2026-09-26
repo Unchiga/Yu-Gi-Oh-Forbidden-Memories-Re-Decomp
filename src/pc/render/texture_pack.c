@@ -7,6 +7,7 @@
 #include "pc/compat/signal.h"
 #include "pc/sdk/disc.h"
 #include <png.h>
+#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -580,18 +581,18 @@ static void describe(char *out, size_t size, const Problem *kind, const char *on
 }
 
 /* The images are read when the game first needs them, so at load a file is
- * only checked to be there and to be a PNG: a problem shows as the pack is
- * applied, not when a screen happens to want the picture. */
-static int is_png(const char *path)
+ * only checked to be there: a missing one shows as the pack is applied, not
+ * when a screen happens to want the picture. It is not opened. A pack names
+ * thousands of images and loads while the frame waits (the Mods window
+ * applies it from inside a present), and each open can be slow on a cold
+ * disc, more so with an on-access virus scanner: applying a 4515-image pack
+ * held the frame over 20 s and Windows closed the game as not responding
+ * (26 September 2026, Windows, tmp/pc hang report). A file that is there but is no
+ * PNG fails when it is first decoded (load_pixels), which reports it and
+ * keeps the original texture. */
+static int readable(const char *path)
 {
-    static const unsigned char signature[8] = {0x89, 'P', 'N', 'G', '\r', '\n', 0x1a, '\n'};
-    unsigned char start[8];
-    FILE *file = fopen(path, "rb");
-    int same;
-    if (!file) return 0;
-    same = fread(start, 1, sizeof(start), file) == sizeof(start) && !memcmp(start, signature, sizeof(start));
-    fclose(file);
-    return same;
+    return access(path, R_OK) == 0;
 }
 
 /* The size of the block an upload of the image or palette starting at a
@@ -743,7 +744,7 @@ int TexturePack_Load(const char *from, unsigned rank, int (*part)(const char *se
             continue;
         }
         snprintf(path, sizeof(path), "%s/%s", from, file);
-        if (!is_png(path)) {
+        if (!readable(path)) {
             problem(&unreadable, file);
             continue;
         }
