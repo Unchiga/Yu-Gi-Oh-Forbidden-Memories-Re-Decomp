@@ -111,10 +111,14 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ github.ref_name }}
+        # A tag with a hyphen (v0.2.0-preview.1, v0.2.0-rc.1) is a preview:
+        # its draft is marked as a pre-release. A plain v0.2.0 is a release.
         run: |
+          case "$RELEASE_TAG" in *-*) kind=--prerelease ;; *) kind=--prerelease=false ;; esac
           if gh release view "$RELEASE_TAG" --json isDraft > release-state.json; then
             python -c 'import json; assert json.load(open("release-state.json"))["isDraft"], "Refusing to replace a published release"'
+            gh release edit "$RELEASE_TAG" "$kind"
           else
-            gh release create "$RELEASE_TAG" --verify-tag --draft --title "$RELEASE_TAG" --generate-notes
+            gh release create "$RELEASE_TAG" --verify-tag --draft "$kind" --title "$RELEASE_TAG" --generate-notes
           fi
           gh release upload "$RELEASE_TAG" release/* --clobber

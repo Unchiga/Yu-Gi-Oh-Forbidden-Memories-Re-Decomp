@@ -54,6 +54,19 @@ Every build uploads a Windows ZIP or Linux tar.gz plus checksum as an Actions
 artifact, retained for 14 days. On a version tag, both jobs must succeed before
 the final job creates a **draft** GitHub release and attaches both packages.
 Reruns can update a draft but refuse to replace an already published release.
+
+Two kinds of tag:
+
+- `v0.2.0-preview.1` (any hyphen, also `-rc.1`, `-beta.2`): a **preview**.
+  The draft is marked as a pre-release, so GitHub labels it and "Latest
+  release" keeps pointing at the last real one.
+- `v0.2.0`: a **release**, a normal draft.
+
+To make one: `git tag v0.2.0-preview.1 origin/master && git push origin
+v0.2.0-preview.1`, wait for the workflow, test the attached archives, then
+edit the draft on the Releases page and press Publish. Nothing is public
+until then. A bad draft can be deleted along with its tag
+(`gh release delete v0.2.0-preview.1 --cleanup-tag`).
 The normal PC foundation workflow continues running the full adapter tests
 on both platforms; it also includes the new ROM setup tests.
 
