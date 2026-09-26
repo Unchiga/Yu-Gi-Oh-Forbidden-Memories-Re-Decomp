@@ -18,9 +18,18 @@ included.
 
 ## Play
 
-Download the latest build from [Releases](https://github.com/Unchiga/Yu-Gi-Oh-Forbidden-Memories-Re-Decomp/releases),
+Download the latest build from [Releases](https://github.com/Unchiga/Yu-Gi-Oh-Forbidden-Memories-Recompiled/releases),
 extract it and run `memories-pc.exe` (Windows) or `./memories-pc` (Linux). On first
-launch, pick your USA disc's `.bin`. For the HD pack, extract its zip next to the game.
+launch, pick your USA disc's `.bin`.
+
+### HD pack
+
+1. From the same release, download `yfm-redecomp-hd-mod-<version>.zip`.
+2. Close the game and extract the zip into the game folder, the one with `memories-pc.exe`
+   or `memories-pc`. You should end up with `mods/assets-hd` beside the other mods.
+3. Start the game. The pack is on by default: press **F10** for the menu bar and open
+   **Game > Mods** to check it, or to turn it or any of its parts off.
+4. For the best look, pick **Video > Resolution > Internal 4x** and turn on **Video > HD text**.
 
 **From source:** put the `.bin` in `game/` and run `play.bat` or `./play.sh`. The first
 run builds everything (Linux needs `gcc` and `python3`). See [PC build](notes/pc-build.md).
