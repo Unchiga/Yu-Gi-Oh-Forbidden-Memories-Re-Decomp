@@ -16,8 +16,6 @@ included.
 
 ![HD Free Duel portraits](docs/screenshots/portraits.jpg)
 
-![Cards added by a mod](docs/screenshots/more-cards.jpg)
-
 ## Play
 
 Download the latest build from [Releases](https://github.com/Unchiga/Yu-Gi-Oh-Forbidden-Memories-Re-Decomp/releases),
