@@ -90,7 +90,6 @@ jobs:
           path: |
             dist/*.zip
             dist/*.tar.gz
-            dist/*.sha256
           if-no-files-found: error
           retention-days: 14
 

@@ -17,7 +17,7 @@ USA disc's `.bin` ROM. Its location is remembered for future launches.
 
 The [PC release packages workflow](.github/workflows/pc-release.yml) builds
 both platforms for pull requests and updates to `master`. Version tags
-(`v*`) prepare a draft GitHub release with both archives and SHA-256 files.
+(`v*`) prepare a draft GitHub release with both archives.
 See [release packaging](notes/pc-release.md) for the layout and checks.
 
 ## Play from source
