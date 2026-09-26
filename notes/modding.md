@@ -255,13 +255,15 @@ declare is reported with the pack's other problems, and its entry used.
 An entry the loader cannot use is left out and counted, and the Mods window
 shows one line for the pack, for example `2 images could not be read
 (first: cards/001.png); 1 image is outside the pack (first: ../x.png)`: a
-file that is missing or not a PNG, a path outside the pack, measures out of
+file that is missing, a path outside the pack, measures out of
 range, a `row_offsets` list whose length is not `rows` (the image is then
 read with the stride), an entry without `file` or `archive`, a `setting` the
 mod does not declare (the image is still used), or more than 65535 images in
-all. PNGs are decoded the first time the game needs them;
-at load only their signature is checked, and a PNG that fails to decode
-later is reported on the console.
+all. Loading does not open the images (thousands of opens held the frame
+for seconds on a cold disc), only checks that each is there. PNGs are
+decoded the first time the game needs them; a file that is not a PNG, or
+fails to decode, is reported on the console then (`cannot be read`) and the
+original texture stays.
 
 `tools/pc/upscale_pack.py` makes a pack of upscaled images from an extracted
 set with Upscayl's command-line binary (Real-ESRGAN on the GPU): the same
