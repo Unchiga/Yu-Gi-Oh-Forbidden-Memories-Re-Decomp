@@ -74,6 +74,11 @@ off. The release includes:
   AI Hard Mode optional opponent AI changes
   Yamyi Mods   optional gameplay adjustments
 
+3D Monsters and Hand Camera start enabled. Yamyi Mods and AI Hard Mode
+start disabled. If you install the Forbidden Memories HD texture pack,
+it starts enabled when the game finds it. Your saved choices take priority:
+a mod you turn off stays off on later launches and after updates.
+
 To install someone else's mod, put its folder in the "mods" folder of your
 user folder. A mod that contains code runs as part of the game, so only
 install mods from people you trust. Mod authors: see sdk/notes/modding.md,
