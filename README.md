@@ -9,7 +9,18 @@ for Linux and Windows.
 
 No game data is included. Bring your own dump of the disc.
 
-## Play
+## Release builds
+
+Extract the Windows ZIP or Linux tar.gz and run `memories-pc.exe` or
+`./memories-pc`. The first launch welcomes you and asks you to choose your
+USA disc's `.bin` ROM. Its location is remembered for future launches.
+
+The [PC release packages workflow](.github/workflows/pc-release.yml) builds
+both platforms for pull requests and updates to `master`. Version tags
+(`v*`) prepare a draft GitHub release with both archives and SHA-256 files.
+See [release packaging](notes/pc-release.md) for the layout and checks.
+
+## Play from source
 
 1. Put your disc image (the `.bin` of the USA disc, any file name) in `game/`.
 2. Run `./play.sh` on Linux or `play.bat` on Windows.

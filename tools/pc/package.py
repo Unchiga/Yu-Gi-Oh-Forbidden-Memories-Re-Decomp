@@ -12,14 +12,15 @@ from the game's disc is included.
 The Linux executable is built against Debian 11's libraries
 (tools/pc/build_linux_sysroot.py), as every Linux build is, so it runs on
 other people's Linux. Both builds are smoke tested before they are packed."""
-import argparse, datetime, os, shutil, stat, subprocess, sys, tarfile, zipfile
+import argparse, datetime, hashlib, os, re, shutil, subprocess, sys, tarfile, zipfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DIST = os.path.join(ROOT, "dist")
 NAME = "yfm-redecomp"
 BUILDS = {"windows": ("tmp/pc/win32", "memories-pc.exe", ["SDL3.dll"]),
           "linux": ("tmp/pc/game32", "memories-pc", [])}
-GAME_README = """Put your own raw image of Yu-Gi-Oh! Forbidden Memories (USA, SLUS-01411)
+GAME_README = """Start memories-pc and choose your own ROM in the welcome screen.
+Alternatively, put your raw image of Forbidden Memories (USA, SLUS-01411)
 here: the .bin file of a .bin/.cue pair. Any file name ending in .bin will do.
 """
 
@@ -30,10 +31,13 @@ def version():
     return f"{datetime.date.today():%Y%m%d}-{commit}"
 
 
-def build(system):
-    command = [sys.executable, "tools/pc/build_game32.py"]
-    command += ["--target", "windows"] if system == "windows" else ["--target", "linux"]
+def build(system, skip_smoke=False):
+    command = [sys.executable, "tools/pc/build_game32.py", "--target", system,
+               "--backend", "sdl", "--release", "--build", BUILDS[system][0]]
     subprocess.run(command, cwd=ROOT, check=True)
+    if skip_smoke:
+        print("package: gameplay smoke tests skipped (no disc required)")
+        return
     smoke = [sys.executable, "tools/pc/smoke.py"]
     smoke += ["--windows"] if system == "windows" else ["--executable", os.path.join(BUILDS[system][0], BUILDS[system][1])]
     if subprocess.run(smoke, cwd=ROOT).returncode:
@@ -61,6 +65,7 @@ def stage(system, label):
             if a.read() == b.read():
                 shutil.copy2(path, os.path.join(folder, "symbols", name))
     shutil.copy2(os.path.join(ROOT, "tools/pc/release/README.txt"), folder)
+    shutil.copy2(os.path.join(ROOT, "LICENSE"), folder)
     with open(os.path.join(folder, "game", "README.txt"), "w", newline="\r\n" if system == "windows" else "\n") as handle:
         handle.write(GAME_README)
     if system == "windows":   # Notepad and friends
@@ -96,18 +101,26 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("systems", nargs="*", help="windows, linux (default: both)")
     parser.add_argument("--no-build", action="store_true", help="pack what is already built")
+    parser.add_argument("--skip-smoke", action="store_true", help="build without ROM-dependent gameplay tests (CI)")
+    parser.add_argument("--version", help="archive version, e.g. v0.1.0 or dev-abcdef0")
     options = parser.parse_args()
     systems = options.systems or ["windows", "linux"]
     if set(systems) - set(BUILDS):
         parser.error("systems are windows and linux")
-    label = version()
+    label = options.version or version()
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,99}", label):
+        parser.error("version must be 1-100 letters, numbers, dots, underscores or hyphens, starting with a letter or number")
     made = []
     for system in systems:
         if not options.no_build:
-            build(system)
+            build(system, options.skip_smoke)
         made.append(pack(system, stage(system, label)))
     shutil.rmtree(os.path.join(DIST, "stage"), ignore_errors=True)
     for path in made:
+        with open(path, "rb") as handle:
+            digest = hashlib.file_digest(handle, "sha256").hexdigest()
+        with open(path + ".sha256", "w", encoding="ascii", newline="\n") as handle:
+            handle.write(f"{digest}  {os.path.basename(path)}\n")
         print(f"{os.path.relpath(path, ROOT)}: {os.path.getsize(path) / 1e6:.1f} MB")
 
 
