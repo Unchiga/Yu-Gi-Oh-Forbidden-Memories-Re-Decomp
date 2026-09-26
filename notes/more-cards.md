@@ -65,6 +65,35 @@ with `cards` needs a restart to apply or remove, like a data override: the
 cards are counted once, when the game starts. The window and the log
 (`MEMORIES_TRACE=mods`) say which ids each entry got.
 
+## Changing a card of the disc
+
+`"replace": <id or name>` in place of `copy` changes the retail card itself,
+so a mod can rework the existing cards without adding any:
+
+```json
+{ "replace": 1, "name": "Bulbasaur", "art": "images/bulbasaur.png",
+  "description": "A strange seed was planted on its back at birth.",
+  "type": "Plant", "attribute": "Earth", "attack": 1180, "defense": 1150 }
+```
+
+It takes the keys above that change what a player reads off the card:
+`name`, `description`, `art`, `thumbnail`, `title`, `attack`, `defense`,
+`type`, `attribute`, `level` and `stars`. It gets no id of its own, so `id`,
+`count`, `count_setting`, `drops`, `opponents`, `model`, `effect` and
+`fusions` do not apply: the card keeps its model, effect and place in the
+disc's tables, and the [gameplay tables](gameplay-tables.md) change its
+fusions, equips and rituals. Nothing of it goes in the save, so the mod can be
+removed at any time (after a restart). A card with a name of its own gets a
+plate that says it, as an added card does (a `title` PNG replaces it), and
+the HD text renderer sets its title from the same name. Its name and text
+win over a [translation](translation.md)'s, and the Library and Build Deck
+sort it by the new name. Copies of it that set no name, text or art of their
+own show the replaced ones.
+
+When two entries (or two mods) replace the same card, the later one goes over
+the earlier: what the later entry leaves out stays as the earlier one set it.
+The Mods window notes it.
+
 ## Where a card comes from
 
 The disc's reward and deck tables are of retail cards, and their weights add

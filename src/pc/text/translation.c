@@ -291,10 +291,15 @@ const unsigned char *Text_CompileOwn(const char *listing, int id, size_t *size)
 const unsigned char *Text_Resolve(int id, const unsigned char *retail)
 {
     const unsigned char *own = overrides && id >= 0 && id <= 0xFFFF ? overrides[id] : NULL;
-    const unsigned char *side = side_name(id), *drops = CardDrops_Text(id), *shop = DeckMenu_Text(id);
+    const unsigned char *card = NULL, *side = side_name(id), *drops = CardDrops_Text(id), *shop = DeckMenu_Text(id);
     if (drops) return drops; /* the results screen's added pages (drops.h) */
     if (shop) return shop;   /* the card shop's menu with DECK SLOTS (deck_menu.h) */
     if (side) return side;
+    /* A retail card a mod's "cards" replaced: its name and text, over a
+     * translation's (cards.h). */
+    if (id > 0x8000 && id <= 0x8000 + CARD_COUNT) card = Cards_NameText(id - 0x8000);
+    if (id > 0xD100 && id <= 0xD100 + CARD_COUNT) card = Cards_DescriptionText(id - 0xD100);
+    if (card) return card;
     if (!own && id >= TEXT_RESULTS_FIRST && id <= TEXT_RESULTS_LAST) {
         const unsigned char *copy = results_copy(retail);
         if (copy) return copy;
@@ -364,8 +369,7 @@ void Text_SortCards(void)
 {
     Sorted *cards;
     int id, renamed = 0;
-    if (!overrides) return;
-    for (id = 1; id <= CARD_COUNT; id++) renamed |= overrides[0x8000 + id] != NULL;
+    for (id = 1; id <= CARD_COUNT; id++) renamed |= (overrides && overrides[0x8000 + id]) || Cards_NameText(id);
     if (!renamed) return;
     cards = calloc((size_t)gCard_nCount, sizeof(*cards));
     if (!cards) return;

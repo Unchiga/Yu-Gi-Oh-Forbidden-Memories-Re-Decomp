@@ -99,6 +99,7 @@ static unsigned char *descriptions[CARD_TABLE_ID_END];  /* own card text, glyph 
 static unsigned char *art_records[CARD_TABLE_ID_END];
 static unsigned char art_parts[CARD_TABLE_ID_END];
 static unsigned char *plates[CARD_TABLE_ID_END];
+static const char *replaced[CARD_ID_END];          /* the mod that replaced a retail card */
 static unsigned short *variants[2];                 /* per use: copies, grouped by base */
 static unsigned short variant_start[2][CARD_ID_END + 1];
 
@@ -440,7 +441,8 @@ static int clamp(int value, int low, int high)
 
 static void add_entry(const char *mod, const char *directory, int index, const JsonValue *entry, BuildContext *context)
 {
-    const JsonValue *copy = Json_Member(entry, "copy");
+    const JsonValue *replace = Json_Member(entry, "replace");
+    const JsonValue *copy = replace ? replace : Json_Member(entry, "copy");
     const JsonValue *stars = Json_Member(entry, "stars");
     const char *name = Json_String(Json_Member(entry, "name"), NULL);
     const char *setting = Json_String(Json_Member(entry, "count_setting"), NULL);
@@ -460,13 +462,22 @@ static void add_entry(const char *mod, const char *directory, int index, const J
         base = (int)Json_Number(copy, 0);
     }
     if (base < 1 || base > CARD_COUNT) {
-        Mods_Note(mod, "cards[%d]: \"copy\" must name a card of the disc, 1 to %d", index, CARD_COUNT);
+        Mods_Note(mod, "cards[%d]: \"%s\" must name a card of the disc, 1 to %d", index, replace ? "replace" : "copy",
+                  CARD_COUNT);
         return;
     }
-    count = (int)Json_Number(Json_Member(entry, "count"), 1);
-    if (setting && *setting) count = Mods_Setting(mod, setting, count);
+    /* "replace" changes the retail card itself, in place: one card, no new
+     * id, and nothing of it goes in the save. */
+    count = replace ? 1 : (int)Json_Number(Json_Member(entry, "count"), 1);
+    if (!replace && setting && *setting) count = Mods_Setting(mod, setting, count);
     if (count < 0) count = 0;
-    if (count > CARD_TABLE_COUNT - gCard_nCount) {
+    if (replace && replaced[base]) {
+        char text[128];
+        retail_name(base, text, sizeof(text));
+        Mods_Note(mod, "cards[%d]: %d %s is replaced by %s too; what this entry sets goes over it", index, base, text,
+                  replaced[base]);
+    }
+    if (!replace && count > CARD_TABLE_COUNT - gCard_nCount) {
         Mods_Note(mod, "cards[%d]: only %d more cards fit (%d asked)", index, CARD_TABLE_COUNT - gCard_nCount, count);
         count = CARD_TABLE_COUNT - gCard_nCount;
     }
@@ -532,6 +543,11 @@ static void add_entry(const char *mod, const char *directory, int index, const J
         char identity[192], fallback[32];
         const char *key = Json_String(Json_Member(entry, "id"), "");
         int id;
+        if (replace) {
+            id = base;
+            replaced[id] = mod;
+            goto own;
+        }
         if (!*key) { snprintf(fallback, sizeof(fallback), "entry-%d", index); key = fallback; }
         if (strlen(key) > 80 || strspn(key, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-") != strlen(key)) {
             Mods_Note(mod, "cards[%d]: invalid stable id", index); break;
@@ -548,8 +564,9 @@ static void add_entry(const char *mod, const char *directory, int index, const J
         value = (int)Json_Number(Json_Member(entry, "effect"), base);
         effect_ids[id] = (unsigned short)(value >= 1 && value <= CARD_COUNT ? value : base);
         gCard_awBaseId[id] = (unsigned short)base;
-        gDuel_adwCardStats[id - 1] = (int)stats;
         gCard_asNameSortKey[id - 1] = gCard_asNameSortKey[base - 1];
+    own:
+        gDuel_adwCardStats[id - 1] = (int)stats;
         gDuel_abCardLevelAttr[id] = level_attr;
         names[id] = name && *name ? encode_name(mod, name, n, id) : NULL;
         descriptions[id] = description && *description ? encode_description(mod, description, id) : NULL;
@@ -577,12 +594,17 @@ static void add_entry(const char *mod, const char *directory, int index, const J
         } else if (name && *name) {
             plates[id] = named_plate;
         }
+        if (replace) continue;
         context->use[id] = (unsigned char)((Json_Bool(Json_Member(entry, "drops"), 1) ? 1 : 0) |
                                            (Json_Bool(Json_Member(entry, "opponents"), 0) ? 2 : 0));
         if (context->use[id] & 1) context->use_count[CARDS_USE_DROP][base]++;
         if (context->use[id] & 2) context->use_count[CARDS_USE_OPPONENT][base]++;
     }
-    if (count) {
+    if (replace) {
+        char text[128];
+        retail_name(base, text, sizeof(text));
+        say("%s: card %d %s replaced", mod, base, text);
+    } else if (count) {
         char text[128];
         retail_name(base, text, sizeof(text));
         say("%s: cards %d-%d are copies of %d %s", mod, gCard_nCount - count + 1, gCard_nCount, base, text);
@@ -757,26 +779,37 @@ static void patch(unsigned char *to, const unsigned char *from, size_t bytes)
     TextureDump_Written(to, (unsigned)bytes);
 }
 
+/* Whose artwork a card shows for `part`: its own, else its base's (a retail
+ * card a mod replaced), else none (0). */
+static int art_of(int id, int part)
+{
+    if (!Cards_Valid(id)) return 0;
+    if (art_parts[id] & part) return id;
+    return art_parts[Cards_BaseId(id)] & part ? Cards_BaseId(id) : 0;
+}
+
 void Cards_PatchArtRecord(int id, unsigned char *record)
 {
+    int from;
     if (!Cards_Valid(id)) return;
-    if (art_parts[id] & ART_PICTURE) patch(record, art_records[id], CARD_TITLE_PIXELS);
+    if ((from = art_of(id, ART_PICTURE)) != 0) patch(record, art_records[from], CARD_TITLE_PIXELS);
     /* The plate is not reported: it sits in the middle of the sector that
      * also ends the base's palette, and a write inside a delivery drops all
      * of it (texture_dump.c, forget), so a copy with only a name of its own
      * would lose the base's pack picture. The words of a plate that match
      * the base's are the same inks, so its pack picture there is no harm. */
-    if (plates[id]) memcpy(record + CARD_TITLE_PIXELS, plates[id], CARD_TITLE_BYTES);
-    if (art_parts[id] & ART_THUMBNAIL) {
-        patch(record + CARD_THUMB_PIXELS, art_records[id] + CARD_THUMB_PIXELS, CARD_THUMB_BLOCK);
+    if (plates[id] || plates[Cards_BaseId(id)]) {
+        memcpy(record + CARD_TITLE_PIXELS, plates[id] ? plates[id] : plates[Cards_BaseId(id)], CARD_TITLE_BYTES);
+    }
+    if ((from = art_of(id, ART_THUMBNAIL)) != 0) {
+        patch(record + CARD_THUMB_PIXELS, art_records[from] + CARD_THUMB_PIXELS, CARD_THUMB_BLOCK);
     }
 }
 
 void Cards_PatchThumbnail(int id, unsigned char *block)
 {
-    if (Cards_Valid(id) && (art_parts[id] & ART_THUMBNAIL)) {
-        patch(block, art_records[id] + CARD_THUMB_PIXELS, CARD_THUMB_BLOCK);
-    }
+    int from = art_of(id, ART_THUMBNAIL);
+    if (from) patch(block, art_records[from] + CARD_THUMB_PIXELS, CARD_THUMB_BLOCK);
 }
 
 int Cards_PickVariant(int id, int use)
