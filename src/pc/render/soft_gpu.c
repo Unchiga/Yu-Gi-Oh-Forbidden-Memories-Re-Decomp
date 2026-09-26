@@ -39,7 +39,10 @@ static int dither_shift;
  * the GTE projects left and right of the 4:3 frame, which the hardware clips,
  * has somewhere to land. VRAM itself is never widened, so nothing the game
  * reads back changes.
- * Fills, loads and copies into the area are mirrored into its centre. */
+ * Fills, loads and copies into the area are mirrored into its centre. While
+ * the recorder draws a scaled picture it draws the widened one too, and that
+ * is what the window shows: the primitives are then not drawn again here
+ * (wide_rastered), which halves the time widescreen spends drawing. */
 #define WIDE_TARGETS 4
 typedef struct WideTarget {
     int x1, y1, x2, y2, margin;
@@ -56,6 +59,9 @@ static uint32_t *picture;
 static uint32_t *wide_picture; /* only the widened primitive pass writes here */
 static int scale = 1, scale_shift; /* scale is 1, 2, 4 or 8: the picture wraps with masks and divides with shifts */
 static const SoftGpuRecorder *recorder; /* draws the picture instead, from a record (soft_gpu.h) */
+static void wide_drop(void);
+/* Whether the widescreen targets get the primitives (see above). */
+static int wide_rastered(void) { return !(recorder && scale > 1); }
 #define PICTURE_WIDTH (SOFT_GPU_WIDTH << scale_shift)
 #define PICTURE_HEIGHT (SOFT_GPU_HEIGHT << scale_shift)
 static inline __attribute__((always_inline)) uint16_t *pixel(int x, int y);
@@ -167,8 +173,10 @@ static inline __attribute__((always_inline)) uint16_t *vram_pixel(int x, int y)
 int SoftGpu_SetScale(int wanted)
 {
     uint32_t *made = NULL;
+    int rastered;
     if (wanted != 1 && wanted != 2 && wanted != 4 && wanted != 8) return 0;
     if (wanted == scale) return 1;
+    rastered = wide_rastered();
     if (wanted > 1 && !recorder) {
         made = calloc((size_t)SOFT_GPU_WIDTH * wanted * SOFT_GPU_HEIGHT * wanted, sizeof(*made));
         if (!made) return 0;
@@ -181,6 +189,8 @@ int SoftGpu_SetScale(int wanted)
     picture = made;
     scale = wanted;
     scale_shift = wanted == 8 ? 3 : wanted == 4 ? 2 : wanted == 2 ? 1 : 0;
+    /* The targets missed the primitives so far: made again from VRAM. */
+    if (!rastered && wide_rastered()) wide_drop();
     SoftGpu_PictureFromVram();
     return 1;
 }
@@ -209,6 +219,7 @@ void SoftGpu_SetRecorder(const SoftGpuRecorder *wanted)
         resync_recorder();
     } else if (scale > 1) {
         int at_scale = scale;
+        wide_drop(); /* they missed the primitives, as in SetScale */
         scale = 1; /* so that SetScale makes the picture again */
         SoftGpu_SetScale(at_scale);
     }
@@ -327,19 +338,26 @@ static WideTarget *wide_target(void)
     return wt;
 }
 
-void SoftGpu_SetWidescreen(int on)
+static void wide_drop(void)
 {
     int t;
-    if (on == wide_on) {
-        return;
-    }
-    wide_on = on;
     for (t = 0; t < WIDE_TARGETS; t++) {
         free(wide[t].picture);
         free(wide[t].pixels);
         memset(&wide[t], 0, sizeof(wide[t]));
     }
 }
+
+void SoftGpu_SetWidescreen(int on)
+{
+    if (on == wide_on) {
+        return;
+    }
+    wide_on = on;
+    wide_drop();
+}
+
+int SoftGpu_WideRastered(void) { return wide_rastered(); }
 
 const uint32_t *SoftGpu_WidePicture(int x, int y, int w, int h)
 {
@@ -1120,9 +1138,9 @@ size_t SoftGpu_Gp0(const uint32_t *words, size_t count)
         size_t used = 1;
         if (command >= 0x20 && command < 0x80) {
             size_t (*draw)(const uint32_t *, size_t) = command < 0x40 ? polygon : command < 0x60 ? lines : rectangle;
-            WideTarget *wt;
+            WideTarget *wt = NULL;
             used = draw(words + at, count - at);
-            if (used && (wt = wide_target()) != NULL) {
+            if (used && (wt = wide_target()) != NULL && wide_rastered()) {
                 /* Again into the widescreen target, shifted. Polygons and
                  * lines, which is what the GTE projects, are unclipped at the
                  * sides, so the scene carries on past the 4:3 edges. Sprites
@@ -1149,6 +1167,8 @@ size_t SoftGpu_Gp0(const uint32_t *words, size_t count)
                 gpu.clip_x2 = clip_x2;
                 gpu.offset_x = offset_x;
                 wt->drawn++;
+            } else if (wt) {
+                wt->drawn++; /* the recorder drew it there (SoftGpu_WideFrame) */
             }
         } else if (command == 0x02) {
             used = count - at >= 3 ? 3 : 0;

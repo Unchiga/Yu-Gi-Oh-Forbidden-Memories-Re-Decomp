@@ -1003,7 +1003,15 @@ unclipped at the sides, sprites keep the 4:3 clip. Transfers into the area
 are copied into the target's centre. VRAM itself is never widened.
 
 The software GPU keeps the 1x targets. At 2x and up the OpenGL pass draws
-its own at the scale (`gl_picture.c`, "widescreen"). Its targets follow the
+its own at the scale (`gl_picture.c`, "widescreen"). The window then shows
+those, so the software GPU keeps its targets' bookkeeping (which areas have
+one, whether anything was drawn) but no longer draws the primitives into
+them a second time (`SoftGpu_WideRastered`): widescreen's software drawing
+takes what 4:3's does (3D Monsters duel, 2x and 4x: about 2.4 ms per frame
+instead of 4.5 ms), and the window is identical. A 1x frame dump then reads
+the OpenGL target; if the backend has no room for one, the window shows the
+4:3 picture between black sides. Changing the scale makes the targets again
+from VRAM. Its targets follow the
 software GPU's rule and are laid out the same way. Each is a texture of
 the widened area alone. Its primitives go through the same runs as the
 picture's, in the same order, drawn with the viewport moved. Since each

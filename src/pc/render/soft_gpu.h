@@ -46,6 +46,11 @@ int SoftGpu_WideMargin(int x1, int y1, int x2, int y2);
 int SoftGpu_WideFrame(int x, int y, int w, int h, const uint16_t **pixels, int *out_x, int *out_w);
 /* The same picture without presenting it (frame dumps): nothing changes. */
 int SoftGpu_WideFrameView(int x, int y, int w, int h, const uint16_t **pixels, int *out_x, int *out_w);
+/* 0 while a recorder draws a scaled picture: the targets then keep the
+ * bookkeeping (what WideFrame finds, whether anything was drawn) but not the
+ * primitives, whose widened picture the recorder draws (SoftGpu_WidePicture
+ * is NULL then), so their pixels are not to be shown. */
+int SoftGpu_WideRastered(void);
 /* Scaled widened picture, SOFT_GPU_WIDTH * scale pixels per row. NULL at
  * console resolution, while a recorder draws the picture (it draws the
  * widened ones too), or if allocation failed. Call after WideFrame to also

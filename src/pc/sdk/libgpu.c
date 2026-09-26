@@ -105,7 +105,7 @@ void Memories_DumpFrame(const char *path, int full_vram)
     FILE *file;
     int x, y, w = disp_env.disp.w > 0 ? disp_env.disp.w : 320;
     int h = disp_env.disp.h > 0 ? disp_env.disp.h : 240;
-    int x0 = full_vram ? 0 : disp_env.disp.x, y0 = full_vram ? 0 : disp_env.disp.y;
+    int x0 = full_vram ? 0 : disp_env.disp.x, y0 = full_vram ? 0 : disp_env.disp.y, wide_view = 0;
     const uint16_t *source = SoftGpu_Vram();
     flush_drawing();
     if (full_vram) {
@@ -116,6 +116,9 @@ void Memories_DumpFrame(const char *path, int full_vram)
         const uint16_t *pixels;
         int wide_x, wide_w;
         if (SoftGpu_WideFrameView(x0, y0, w, h, &pixels, &wide_x, &wide_w)) {
+            /* Without the primitives (SoftGpu_WideRastered) only the scaled
+             * picture has them: that is dumped, whatever DUMP_PICTURE says. */
+            wide_view = SoftGpu_WideRastered() ? 1 : 2;
             source = pixels;
             x0 = wide_x;
             w = wide_w;
@@ -126,7 +129,7 @@ void Memories_DumpFrame(const char *path, int full_vram)
         LOG(LOG_FRAMES, "cannot dump %s", path);
         return;
     }
-    if (SoftGpu_Scale() > 1 && getenv("MEMORIES_DUMP_PICTURE") && !disp_env.isrgb24) {
+    if (SoftGpu_Scale() > 1 && (getenv("MEMORIES_DUMP_PICTURE") || wide_view == 2) && !disp_env.isrgb24) {
         /* The scaled picture of the display area, as the window shows it. */
         int at_scale = SoftGpu_Scale(), stride = SOFT_GPU_WIDTH * at_scale;
         const uint32_t *picture = !full_vram && Platform_Widescreen()
@@ -170,6 +173,11 @@ void Memories_DumpFrame(const char *path, int full_vram)
             return;
         }
     }
+    if (wide_view == 2) { /* no picture to read: the display area, 4:3 */
+        source = SoftGpu_Vram();
+        x0 = disp_env.disp.x;
+        w = disp_env.disp.w > 0 ? disp_env.disp.w : 320;
+    }
     fprintf(file, "P6\n%d %d\n255\n", w, h);
     for (y = 0; y < h; y++) {
         for (x = 0; x < w; x++) {
@@ -210,8 +218,12 @@ static void present_wide(int w, int h)
                 wide_x * at_scale, y * at_scale, wide_w * at_scale, h * at_scale, at_scale)) return;
         /* The backend's own renderer drew it (gl_picture.h). */
         if (!picture && at_scale > 1 && Platform_PresentWidePicture(x, y, w, h, wide_w, at_scale)) return;
-        Platform_Present(pixels, SOFT_GPU_WIDTH, wide_x, y, wide_w, h, 0);
-        return;
+        if (SoftGpu_WideRastered()) {
+            Platform_Present(pixels, SOFT_GPU_WIDTH, wide_x, y, wide_w, h, 0);
+            return;
+        }
+        /* The backend could not show its own (no room for its target), and
+         * these pixels were left to it: 4:3 between black sides, below. */
     }
     for (row = 0; row < h; row++) {
         uint8_t *out = (uint8_t *)(sides + row * SOFT_GPU_WIDTH * 2);
