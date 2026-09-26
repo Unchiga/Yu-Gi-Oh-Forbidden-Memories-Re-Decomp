@@ -114,9 +114,9 @@ static Menu menus[MENU_COUNT] = {
               {"Scaling", 0, ITEM_SUBMENU, 0, -1, SUB_SCALING, ITEM_GROUP_BREAK},
               {"Aspect Ratio", 0, ITEM_SUBMENU, 0, -1, SUB_ASPECT},
               {"Resolution", 0, ITEM_SUBMENU, 0, -1, SUB_RESOLUTION},
-              {"HD text", 0, ITEM_CHECK, 0, SET_HD_TEXT},
-              {"HD numbers and labels", 0, ITEM_CHECK, 0, SET_HD_HUD},
-              {"Opponent's name for COM", 0, ITEM_CHECK, 0, SET_OPPONENT_NAME},
+              {"HD text", 0, ITEM_CHECK, MENU_ITEM_HD_PICTURE, SET_HD_TEXT},
+              {"HD numbers and labels", 0, ITEM_CHECK, MENU_ITEM_HD_PICTURE, SET_HD_HUD},
+              {"Opponent's name for COM", 0, ITEM_CHECK, MENU_ITEM_HD_PICTURE, SET_OPPONENT_NAME},
               {"Anti-aliasing", 0, ITEM_SUBMENU, 0, -1, SUB_ANTIALIAS},
               {"Filtering", 0, ITEM_SUBMENU, MENU_ITEM_FILTER, -1, SUB_FILTER, ITEM_GROUP_BREAK},
               {"VSync", 0, ITEM_CHECK, MENU_ITEM_VSYNC, SET_VSYNC},
@@ -533,6 +533,14 @@ void Menu_DrawTextScaled(MenuCanvas *into, int x, int middle, const char *text, 
     }
 }
 
+/* HD text, HD numbers and labels and the opponent's name are drawn by the
+ * OpenGL picture at 2x and up: at the console's resolution they would do
+ * nothing, so they are dimmed there. */
+static void hd_picture_items(int internal_scale)
+{
+    Menu_SetItemEnabled(MENU_ITEM_HD_PICTURE, internal_scale >= 2);
+}
+
 void Menu_LoadSettings(void)
 {
     Paths_MigrateLegacySaves(); /* what older builds left in ./saves */
@@ -544,6 +552,7 @@ void Menu_LoadSettings(void)
     Spu_SetInterpolation((SpuInterpolation)Settings_Get(SET_AUDIO_INTERPOLATION));
     Platform_SetScale(Settings_Get(SET_SCALE));
     Memories_SetInternalScale(Settings_Get(SET_INTERNAL_SCALE));
+    hd_picture_items(Settings_Get(SET_INTERNAL_SCALE));
     Platform_SetClockRate(Settings_Get(SET_SPEED));
     Platform_SetPresentCap(Settings_Get(SET_FPS));
     Mods_SetTexturePack(TexturePack_Load, TexturePack_Unload);
@@ -560,7 +569,10 @@ static void setting_changed(SettingId id, int value)
     case SET_STREAM_VOLUME: Spu_SetBusVolume(SPU_BUS_STREAM, value); break;
     case SET_AUDIO_INTERPOLATION: Spu_SetInterpolation((SpuInterpolation)value); break;
     case SET_SCALE: Platform_SetScale(value); break;
-    case SET_INTERNAL_SCALE: Memories_SetInternalScale(value); break;
+    case SET_INTERNAL_SCALE:
+        Memories_SetInternalScale(value);
+        hd_picture_items(value);
+        break;
     case SET_SPEED: Platform_SetClockRate(value); break;
     case SET_FPS: Platform_SetPresentCap(value); break;
     case SET_MENU_SCALE: Platform_ApplyDisplaySettings(); break;

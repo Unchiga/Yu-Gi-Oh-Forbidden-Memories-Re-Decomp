@@ -68,7 +68,11 @@ typedef enum {
     MENU_ITEM_DECKS, /* Game > Deck slots: enabled where the deck can change (deck_menu.c) */
     MENU_ITEM_FILTER_NEAREST,
     MENU_ITEM_FILTER_LINEAR,
-    MENU_ITEM_FILTER_SHARP
+    MENU_ITEM_FILTER_SHARP,
+    /* Video > HD text, HD numbers and labels, Opponent's name for COM: the
+     * OpenGL picture draws them, at 2x and up, so they are dimmed at the
+     * console's resolution (menu.c) */
+    MENU_ITEM_HD_PICTURE
 } MenuItemId;
 
 /* The stored settings (settings.txt in the user directory, see paths.h;
