@@ -7,6 +7,7 @@ existing Debian 11 i386 sysroot. Both remain 32-bit builds.
 ```text
 yfm-redecomp-<version>/
   memories-pc.exe + SDL3.dll    # Windows ZIP
+  memories-pc.pdb              # Windows symbols (debuggers, profilers)
   memories-pc                  # Linux tar.gz, executable permission retained
   README.txt
   LICENSE

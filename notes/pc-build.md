@@ -1672,7 +1672,10 @@ first run of `tools/pc/build_win32_deps.py` fetches the pinned llvm-mingw
 release for Linux into `tmp/pc/llvm-mingw` (the same toolchain as on
 Windows) and builds the libraries with it; `build_game32.py --target windows`
 then writes `tmp/pc/win32/memories-pc.exe`, its mods and `SDL3.dll`,
-beside the Linux build rather than over it. Needs cmake, ninja and Wine to
+beside the Linux build rather than over it. The Windows units are compiled
+with `-gcodeview` and lld writes `memories-pc.pdb` beside the executable
+(the release zip ships it): Visual Studio, WinDbg and profilers such as
+Superluminal read symbols from a PDB, not from DWARF. Needs cmake, ninja and Wine to
 run it:
 
 ```sh
