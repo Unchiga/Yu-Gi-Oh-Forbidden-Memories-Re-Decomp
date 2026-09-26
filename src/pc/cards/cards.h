@@ -16,7 +16,11 @@
  * carry them. What a save holds of the new cards -- how many the player owns
  * and whether the Library has seen them -- has no room in the memory card's
  * block, so it is kept beside it in the user directory, by duelist code and
- * save sequence (cards.c). */
+ * save sequence (cards.c).
+ *
+ * An entry with "replace" in place of "copy" changes a retail card itself:
+ * its stats in the tables, and its own name, text and artwork here, which
+ * the game's lookups of the retail ones (Text_Resolve) then give. */
 #include "game/card_constants.h"
 
 /* The number of cards this run has: CARD_COUNT without a card mod. */
@@ -71,7 +75,7 @@ int Cards_Seen(int id);
 void Cards_MarkSeen(int id);
 
 /* A card's own name, in the game's glyph codes and ending in 0xFF, or NULL
- * when it has the name of its base. */
+ * when it has the name of its base (for a retail card: its disc name). */
 const unsigned char *Cards_NameText(int id);
 /* A card's name as the game shows it now (a mod's, a translation's, or the
  * retail one) in the game's glyph codes, ending in 0xFF; NULL for no card. */

@@ -56,7 +56,7 @@ editors write, is fine):
 | `legacy_setting` | an older settings key to read the player's choice from, once |
 | `data` | what the mod changes on the disc, below |
 | `textures` | a directory inside the mod holding a texture pack, below |
-| `cards` | cards the mod adds after the disc's 722, below |
+| `cards` | cards the mod adds after the disc's 722, and changes to the disc's own cards, below |
 | `audio` | songs, XA clips and sound effects the mod replaces with WAV or Ogg files, below |
 | `fusions`, `equips`, `rituals`, `drops`, `decks` | changes to the duel's rule tables, below |
 | `text`, `font` | a translation of the game's text, and fonts for letters it has none of, below |
@@ -308,6 +308,20 @@ in the Library, Build Deck, duels, rewards, trades and saves.
 [More cards](more-cards.md) has every key, how a new card is won, where what
 the save holds of them is kept, and how the port does it. Like data
 overrides, a mod with cards needs a restart.
+
+An entry with `replace` instead of `copy` changes a card of the disc in
+place: the same keys, without `count`, and no new id.
+
+```json
+"cards": [
+    { "replace": 1, "name": "Bulbasaur", "art": "images/bulbasaur.png",
+      "description": "A strange seed was planted on its back at birth.",
+      "type": "Plant", "attribute": "Earth", "attack": 1180, "defense": 1150 }
+]
+```
+
+The name plate on the card's picture is set from the new name, as for an
+added card, unless the entry has a `title` PNG.
 
 ## Audio: songs, voices and sounds from files
 

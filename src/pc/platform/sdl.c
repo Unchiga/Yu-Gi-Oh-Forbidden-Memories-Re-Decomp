@@ -1638,7 +1638,7 @@ int Platform_Open(const char *title)
                      (const char *)glGetString(GL_VENDOR), (const char *)glGetString(GL_VERSION));
         LOG(LOG_WINDOW, "OpenGL renderer %s, version %s, video %s", glGetString(GL_RENDERER),
             glGetString(GL_VERSION), SDL_GetCurrentVideoDriver());
-        GlPicture_Init();
+        Menu_SetHdPicture(GlPicture_Init());
     } else {
         Monitor_Fact("gpu", "no OpenGL: SDL renderer %s", SDL_GetRendererName(renderer));
         LOG(LOG_WINDOW, "SDL fallback renderer %s, video %s", SDL_GetRendererName(renderer), SDL_GetCurrentVideoDriver());

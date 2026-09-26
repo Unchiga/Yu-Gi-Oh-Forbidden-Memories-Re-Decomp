@@ -1192,6 +1192,12 @@ at 1x (`HdText_NamePixels`), through the panel's CLUT, so the inactive
 side's dimming applies and whatever the game draws over the panel stays
 over it. With the option off nothing is drawn.
 
+This item, HD text and HD numbers and labels are dimmed in the Video menu
+when they could not show: "needs OpenGL 3" when the picture pass is off (no
+OpenGL 3, the SDL renderer fallback, `MEMORIES_GL_PICTURE=0`, the X11
+backend) and "needs Internal 2x" at console resolution (`Menu_SetHdPicture`,
+`menu.c`). Before, they could be switched on and silently did nothing.
+
 - The name comes from the opponent id (`gDuel_bOpponentID`, 1-39) through
   `Tables_DuelistShortName`. A name of up to 11 letters is shown whole.
   Longer ones show the part that tells the duelist apart, a High Mage or a
@@ -1678,7 +1684,10 @@ first run of `tools/pc/build_win32_deps.py` fetches the pinned llvm-mingw
 release for Linux into `tmp/pc/llvm-mingw` (the same toolchain as on
 Windows) and builds the libraries with it; `build_game32.py --target windows`
 then writes `tmp/pc/win32/memories-pc.exe`, its mods and `SDL3.dll`,
-beside the Linux build rather than over it. Needs cmake, ninja and Wine to
+beside the Linux build rather than over it. The Windows units are compiled
+with `-gcodeview` and lld writes `memories-pc.pdb` beside the executable
+(the release zip ships it): Visual Studio, WinDbg and profilers such as
+Superluminal read symbols from a PDB, not from DWARF. Needs cmake, ninja and Wine to
 run it:
 
 ```sh

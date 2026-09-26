@@ -17,7 +17,8 @@ import argparse, datetime, os, re, shutil, subprocess, sys, tarfile, zipfile
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DIST = os.path.join(ROOT, "dist")
 NAME = "yfm-redecomp"
-BUILDS = {"windows": ("tmp/pc/win32", "memories-pc.exe", ["SDL3.dll"]),
+# memories-pc.pdb: the Windows build's symbols, for a debugger or profiler.
+BUILDS = {"windows": ("tmp/pc/win32", "memories-pc.exe", ["SDL3.dll", "memories-pc.pdb"]),
           "linux": ("tmp/pc/game32", "memories-pc", [])}
 GAME_README = """Start memories-pc and choose your own ROM in the welcome screen.
 Alternatively, put your raw image of Forbidden Memories (USA, SLUS-01411)

@@ -243,12 +243,21 @@ static void present_wide(int w, int h)
     Platform_Present(sides, SOFT_GPU_WIDTH * 2, 0, 0, w + 2 * margin, h, disp_env.isrgb24);
 }
 
+/* Set while a frame is being shown: the backend pumps its events from
+ * inside the present, and a View menu change made there would free the
+ * pictures and widescreen targets the present is still reading. */
+static int presenting, scale_after_present;
+
 int Memories_SetInternalScale(int wanted)
 {
     sigset_t held, previous;
     int done;
     /* 1, 2, 4 or 8: the setting's 3 is 2, 5 to 7 are 4. */
     wanted = wanted >= 8 ? 8 : wanted >= 4 ? 4 : wanted >= 2 ? 2 : 1;
+    if (presenting) { /* after this frame (Memories_PresentDisplay) */
+        scale_after_present = wanted;
+        return 1;
+    }
     /* The old picture is freed and a new one made, and an upload from the
      * interrupt tick draws into the picture: the clock waits meanwhile. */
     sigemptyset(&held);
@@ -313,6 +322,7 @@ void Memories_PresentDisplay(void)
     if (display_enabled && Platform_PresentDue()) {
         int at_scale = SoftGpu_Scale();
         frames_shown++;
+        presenting = 1;
         if (wide) {
             present_wide(w, h);
         } else {
@@ -322,6 +332,11 @@ void Memories_PresentDisplay(void)
             Platform_Present(SoftGpu_Vram(), SOFT_GPU_WIDTH, disp_env.disp.x, disp_env.disp.y, w, h,
                              disp_env.isrgb24);
             }
+        }
+        presenting = 0;
+        if (scale_after_present) {
+            Memories_SetInternalScale(scale_after_present);
+            scale_after_present = 0;
         }
     } else {
         Platform_PumpEvents(); /* input and the menu keep up on frames that are not shown */

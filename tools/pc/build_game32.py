@@ -65,7 +65,11 @@ if WINDOWS:
     # of different declared types do not share a unit; the game's layouts are
     # GCC's (GsOT_TAG's `unsigned p:24; unsigned char num:8` is 4 bytes, not
     # 8, or every LIBGS ordering table has the wrong stride).
-    CFLAGS = [f for f in CFLAGS if f not in ("-m32", "-fno-pie")] + ["-Wno-incompatible-pointer-types", "-mno-ms-bitfields"]
+    # -gcodeview: the debug info goes in the PDB the link writes beside the
+    # executable (memories-pc.pdb), which Windows debuggers and profilers
+    # (Visual Studio, WinDbg, Superluminal) read; they do not read DWARF.
+    CFLAGS = [f for f in CFLAGS if f not in ("-m32", "-fno-pie")] + ["-Wno-incompatible-pointer-types", "-mno-ms-bitfields",
+                                                                    "-gcodeview"]
 # -O0 for game units: original busy-waits poll non-volatile globals that the
 # VBlank handler updates, and must not be hoisted out of their loops.
 NATIVE_CFLAGS = ["-m32", "-std=gnu11", "-O2", "-g", "-Wall", "-fno-pie", "-fno-omit-frame-pointer", "-fno-strict-aliasing",
@@ -81,7 +85,8 @@ if WINDOWS:
                                                            "-Wno-builtin-declaration-mismatch",
                                                            "-D_FILE_OFFSET_BITS=64")] + [
         f"-I{WIN32_DEPS}/sdl/include", f"-I{WIN32_DEPS}/include", f"-I{WIN32_DEPS}/include/freetype2",
-        "-mno-ms-bitfields"]  # the game's structures, shared with native code (see CFLAGS)
+        "-mno-ms-bitfields",  # the game's structures, shared with native code (see CFLAGS)
+        "-gcodeview"]
 if PORTABLE:
     SYSROOT_COMPILE, SYSROOT_LINK = build_linux_sysroot.flags()
     CFLAGS = CFLAGS + SYSROOT_COMPILE
@@ -697,7 +702,8 @@ def main():
         # Large-address-aware for guest RAM at 0x80000000, fixed base (like
         # -no-pie) for the symbol table, NX for the guest-call trap. Mods
         # bind through mod_exports.o, not an export table.
-        run([CC, *(["-mwindows"] if options.release else []), "-o", output, "-Wl,--large-address-aware", "-Wl,--disable-dynamicbase", "-Wl,--nxcompat",
+        run([CC, *(["-mwindows"] if options.release else []), "-o", output, f"-Wl,--pdb={options.build}/memories-pc.pdb",
+             "-Wl,--large-address-aware", "-Wl,--disable-dynamicbase", "-Wl,--nxcompat",
              "-Wl,--allow-multiple-definition", f"{options.build}/guest_symbols.o",
              *[obj(s) for s in NATIVE + game], f"{options.build}/stubs.o", f"{options.build}/mod_exports.o",
              f"{options.build}/section_markers.o", *icon,

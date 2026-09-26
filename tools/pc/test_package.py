@@ -26,7 +26,7 @@ def check(path):
     required = {"README.txt", "LICENSE", "buildid", "commit", "game/README.txt",
                 "memories-pc.exe" if windows else "memories-pc"}
     if windows:
-        required.add("SDL3.dll")
+        required |= {"SDL3.dll", "memories-pc.pdb"}
     assert required <= contents, f"missing files: {required - contents}"
     for directory in ("mods/", "sdk/", "symbols/"):
         assert any(name.startswith(directory) for name in contents), f"missing {directory}"
