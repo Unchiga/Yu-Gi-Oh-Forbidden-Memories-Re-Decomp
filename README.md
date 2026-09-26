@@ -71,6 +71,11 @@ _Generated from `config/slus_01411/functions.csv` and `config/slus_01411/overlay
 [Modding](notes/modding.md) · [More cards](notes/more-cards.md) · [Fusion helper](notes/fusion-helper.md) ·
 [Card drops](notes/card-drops.md) · [Setup](notes/setup.md) · [Build](notes/build.md) · [Releases](notes/pc-release.md)
 
+## Community
+
+Join the [Discord](https://discord.gg/Gn6Mag52q) to follow development, ask questions
+and report issues.
+
 ## License
 
 The PC port (`src/pc/`, `tools/pc/`, `tests/pc/`, `mods/`, `examples/` and the build
