@@ -28,6 +28,11 @@ typedef struct {
     struct ObjectSymbol { const char *name; uintptr_t address, size; int function, global; } *symbols;
     size_t symbol_count;
     char *strings;
+    /* A hash of what was loaded: the allocated sections, their relocations
+     * and the global names, and nothing else. Debugging information (which
+     * holds the build folder and each header's MD5) and .comment are left
+     * out, so a rebuild that makes the same code hashes the same. */
+    uint32_t hash;
 } LoadedObject;
 
 /* Returns 0 and fills `object`, or -1 with the reason in `error`. */

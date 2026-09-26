@@ -159,7 +159,10 @@ returns zero. Use SAVE/LOAD events for packing or rebuilding richer state.
 
 Before changing game memory, loading checks the active mod identities, manifests,
 loaded code hashes, actual activation order, effective declared options and stored
-extra mod settings, plus each registered buffer's size and version. A mismatch
+extra mod settings, plus each registered buffer's size and version. The code
+hash covers only what the loader loads (allocated sections, their relocations and
+global names), not debugging information, so rebuilding the same code after a
+header change or in another folder keeps states loadable. A mismatch
 rejects the state and asks for its original profile. Old vanilla states remain
 usable; old modded states without a compatibility record are rejected. This does
 not hash every external texture or data asset: bump the manifest version when

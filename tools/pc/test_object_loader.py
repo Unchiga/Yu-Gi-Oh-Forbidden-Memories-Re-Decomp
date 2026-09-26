@@ -9,7 +9,7 @@ which is the point: one object, both systems.
 
 ctest runs the Linux half (pc_object_loader); smoke.py --windows runs the
 Windows half."""
-import argparse, os, subprocess, sys
+import argparse, os, shutil, subprocess, sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -32,6 +32,19 @@ def fixtures():
                                ("protected", ["protected.c"], ["-fstack-protector-all"])):
         build_mod.compile_object(source(*files), os.path.join(directory, name + ".o"),
                                  os.path.join(objects, name), flags)
+    # The same code without debugging information, and built from another
+    # folder: both must hash as good.o does (save states keep the hash).
+    # Built at -O1, the code differs and so must the hash.
+    build_mod.compile_object(source("good.c", "good_other.c"), os.path.join(directory, "good-nodebug.o"),
+                             os.path.join(objects, "nodebug"), ["-g0"])
+    moved = os.path.join(OUT, "moved-sources")
+    os.makedirs(moved, exist_ok=True)
+    for name in ("good.c", "good_other.c"):
+        shutil.copy(os.path.join(FIXTURES, name), moved)
+    build_mod.compile_object([os.path.join(moved, "good.c"), os.path.join(moved, "good_other.c")],
+                             os.path.join(directory, "good-moved.o"), os.path.join(objects, "moved"))
+    build_mod.compile_object(source("good.c", "good_other.c"), os.path.join(directory, "good-o1.o"),
+                             os.path.join(objects, "o1"), ["-O1"])
     with open(os.path.join(directory, "good.o"), "rb") as handle:
         good = handle.read()
     with open(os.path.join(directory, "truncated.o"), "wb") as handle:
