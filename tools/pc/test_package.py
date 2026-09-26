@@ -1,17 +1,12 @@
 #!/usr/bin/env python3
-"""Check release archives without a ROM: layout, modes, checksum, no user data."""
+"""Check release archives without a ROM: layout, modes, no user data."""
 import argparse
-import hashlib
 from pathlib import Path, PurePosixPath
 import tarfile
 import zipfile
 
 
 def check(path):
-    checksum = path.with_name(path.name + ".sha256").read_text(encoding="ascii").strip()
-    with path.open("rb") as handle:
-        digest = hashlib.file_digest(handle, "sha256").hexdigest()
-    assert checksum == f"{digest}  {path.name}", f"checksum mismatch: {path}"
     windows = path.suffix == ".zip"
     if windows:
         with zipfile.ZipFile(path) as archive:
@@ -40,7 +35,7 @@ def check(path):
                    name in {"disc-path.txt", "settings.ini", "controls.ini"} or
                    PurePosixPath(name).suffix.lower() in {".bin", ".cue", ".iso", ".chd", ".mcr"}
                    for name in contents), "archive contains personal or disc data"
-    print(f"{path.name}: layout and SHA-256 passed ({len(contents)} files)")
+    print(f"{path.name}: layout passed ({len(contents)} files)")
 
 
 def main():

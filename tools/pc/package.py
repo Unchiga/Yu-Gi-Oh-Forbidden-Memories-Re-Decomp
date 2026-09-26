@@ -12,7 +12,7 @@ from the game's disc is included.
 The Linux executable is built against Debian 11's libraries
 (tools/pc/build_linux_sysroot.py), as every Linux build is, so it runs on
 other people's Linux. Both builds are smoke tested before they are packed."""
-import argparse, datetime, hashlib, os, re, shutil, subprocess, sys, tarfile, zipfile
+import argparse, datetime, os, re, shutil, subprocess, sys, tarfile, zipfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DIST = os.path.join(ROOT, "dist")
@@ -117,10 +117,6 @@ def main():
         made.append(pack(system, stage(system, label)))
     shutil.rmtree(os.path.join(DIST, "stage"), ignore_errors=True)
     for path in made:
-        with open(path, "rb") as handle:
-            digest = hashlib.file_digest(handle, "sha256").hexdigest()
-        with open(path + ".sha256", "w", encoding="ascii", newline="\n") as handle:
-            handle.write(f"{digest}  {os.path.basename(path)}\n")
         print(f"{os.path.relpath(path, ROOT)}: {os.path.getsize(path) / 1e6:.1f} MB")
 
 

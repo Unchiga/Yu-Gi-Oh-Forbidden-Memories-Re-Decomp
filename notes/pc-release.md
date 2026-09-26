@@ -18,7 +18,8 @@ yfm-redecomp-<version>/
   symbols/                    # this build's crash/save-state symbol tables
 ```
 
-Each archive has a `.sha256` sidecar. No ROM, extracted game data, user
+GitHub shows each release asset's SHA-256 itself, so there are no
+`.sha256` files beside the archives. No ROM, extracted game data, user
 settings, saves, reports or personal HD packs belong in the archive. Release
 builds omit the optional executable icon extracted from a local disc.
 
@@ -50,7 +51,7 @@ a failed picker explains the `game/` folder fallback. See the
 existing dependency/toolchain fetchers and cache only dependencies. Linux
 selects GCC 14 because the game source build uses C `-fpermissive`.
 
-Every build uploads a Windows ZIP or Linux tar.gz plus checksum as an Actions
+Every build uploads a Windows ZIP or Linux tar.gz as an Actions
 artifact, retained for 14 days. On a version tag, both jobs must succeed before
 the final job creates a **draft** GitHub release and attaches both packages.
 Reruns can update a draft but refuse to replace an already published release.
