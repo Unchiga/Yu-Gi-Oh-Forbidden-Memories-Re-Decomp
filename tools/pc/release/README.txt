@@ -13,15 +13,22 @@ Getting started
 1. Make a raw image of your Yu-Gi-Oh! Forbidden Memories disc (USA,
    SLUS-01411): the .bin file of a .bin/.cue pair.
 
-2. Put the .bin file in the "game" folder next to the program. Any file
-   name ending in .bin will do.
+2. Extract the whole release archive into a folder.
 
 3. Start the game:
      Windows: memories-pc.exe
      Linux:   ./memories-pc   (see "Linux" below)
 
-If the disc image is missing, the game says so and tells you which folder
-it looked in.
+4. On the welcome screen, choose "Choose ROM..." and select your .bin.
+   The game remembers its location; the ROM stays where you keep it.
+   Next time, the game starts directly. Cancel or Quit closes normally.
+
+If you move or remove your ROM, setup asks you to locate it again. Choosing
+an unsupported or unreadable file shows an error and lets you try again.
+You can also place a .bin in the "game" folder beside the program to have
+it detected automatically. The supported format is raw MODE2/2352, USA
+SLUS-01411; select the .bin, not the .cue. ISO/CHD and other regions are
+not supported.
 
 
 Controls
@@ -50,19 +57,22 @@ in your user folder, not next to the program:
   Windows: Documents\My Games\YFM Re-Decomp
   Linux:   ~/.local/share/YFM Re-Decomp
 
-A copy of the program can be replaced by a newer one without losing
-anything.
+To update, extract the new release into a fresh folder and launch it.
+Your ROM selection, settings and memory-card saves stay in your user folder.
+Save states may depend on the build; use an in-game save before updating.
 
 
 Mods
 ----
 
 Game > Mods lists the mods the game found and lets you turn them on and
-off. Two come with it:
+off. The release includes:
 
   3D Monsters  face-up monsters stand on their cards as 3D models
   Hand Camera  L1/R1 turn and L3/R3 zoom the duel camera while the
                hand is up
+  AI Hard Mode optional opponent AI changes
+  Yamyi Mods   optional gameplay adjustments
 
 To install someone else's mod, put its folder in the "mods" folder of your
 user folder. A mod that contains code runs as part of the game, so only
@@ -83,7 +93,9 @@ If you have Steam installed, you already have them. If not:
   Fedora:         sudo dnf install mesa-libGL.i686 mesa-dri-drivers.i686 pulseaudio-libs.i686
   Arch:           enable [multilib], then: sudo pacman -S lib32-mesa lib32-libpulse
 
-It runs on Debian 11, Ubuntu 20.04 and anything newer.
+The build targets Debian 11-era system libraries. A desktop file picker
+requires an XDG desktop portal or Zenity (package "zenity"). If the picker
+is unavailable, put your .bin in the "game" folder beside the executable.
 
 
 Problems

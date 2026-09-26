@@ -352,7 +352,7 @@ def exe_icon(build):
     return [f"{build}/icon.o"]
 
 
-def build_mods(build):
+def build_mods(build, release=False):
     """Each directory under mods/ becomes a mod directory beside the game.
 
     A mod is its manifest and whatever it ships; if it has C, that becomes
@@ -369,15 +369,23 @@ def build_mods(build):
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     import build_mod
     out_root = f"{build}/mods"
+    tracked = None
+    if release:
+        tracked = set(subprocess.check_output(["git", "ls-files", "-z", "mods"], text=True).split("\0"))
+        shutil.rmtree(out_root, ignore_errors=True)
     os.makedirs(out_root, exist_ok=True)
     write_sdk(build)
     built = []
     for manifest in sorted(glob.glob("mods/*/mod.json")):
+        if tracked is not None and manifest not in tracked:
+            continue
         source_dir = os.path.dirname(manifest)
         name = os.path.basename(source_dir)
         out_dir = f"{out_root}/{name}"
         os.makedirs(out_dir, exist_ok=True)
         for path in sorted(glob.glob(f"{source_dir}/**/*", recursive=True)):
+            if tracked is not None and path not in tracked:
+                continue
             if path.endswith(".c") or path.endswith(".h") or os.path.isdir(path):
                 continue
             copy_if_newer(path, os.path.join(out_dir, os.path.relpath(path, source_dir)))
@@ -437,6 +445,8 @@ def main():
     parser.add_argument("--backend", choices=list(BACKENDS), default=os.environ.get("MEMORIES_BACKEND") or
                         "sdl")
     parser.add_argument("--target", choices=("linux", "windows"), default=TARGET)
+    parser.add_argument("--release", action="store_true",
+                        help="Windows GUI executable; omit the optional disc-derived executable icon")
     # A Windows build made on Linux gets a directory of its own, so both
     # executables and their objects sit side by side.
     parser.add_argument("--build", default="tmp/pc/win32" if WINDOWS and sys.platform != "win32" else
@@ -671,7 +681,7 @@ def main():
     output = f"{options.build}/memories-pc"
     if WINDOWS:
         output += ".exe"
-        icon = exe_icon(options.build)
+        icon = [] if options.release else exe_icon(options.build)
         for name in ("guest_symbols", "section_markers"):
             run([CC, "-c", f"{options.build}/{name}.s", "-o", f"{options.build}/{name}.o"])
         # The pins first: a game unit's tentative definition of a pinned
@@ -681,7 +691,7 @@ def main():
         # Large-address-aware for guest RAM at 0x80000000, fixed base (like
         # -no-pie) for the symbol table, NX for the guest-call trap. Mods
         # bind through mod_exports.o, not an export table.
-        run([CC, "-o", output, "-Wl,--large-address-aware", "-Wl,--disable-dynamicbase", "-Wl,--nxcompat",
+        run([CC, *(["-mwindows"] if options.release else []), "-o", output, "-Wl,--large-address-aware", "-Wl,--disable-dynamicbase", "-Wl,--nxcompat",
              "-Wl,--allow-multiple-definition", f"{options.build}/guest_symbols.o",
              *[obj(s) for s in NATIVE + game], f"{options.build}/stubs.o", f"{options.build}/mod_exports.o",
              f"{options.build}/section_markers.o", *icon,
@@ -702,7 +712,7 @@ def main():
              *[obj(s) for s in game + NATIVE],
              f"{options.build}/stubs.o", f"{options.build}/mod_exports.o", f"{options.build}/guest_symbols.ld", *(libraries if options.backend == "sdl"
                else ["-lm", *fonts, "-lX11", "-lXext", "-lasound", *system]), *build_linux_sysroot.endfiles()])
-    build_mods(options.build)
+    build_mods(options.build, options.release)
     # Save states are carried between builds with these tables
     # (src/pc/guest/state.c): every function in the executable, because the
     # game keeps pointers to native routines as well as its own (HMD

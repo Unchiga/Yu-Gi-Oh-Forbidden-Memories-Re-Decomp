@@ -1,0 +1,124 @@
+name: PC release packages
+
+on:
+  push:
+    branches: [master]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pc-release-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
+jobs:
+  package:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - system: linux
+            runner: ubuntu-24.04
+          - system: windows
+            runner: windows-2022
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Linux build tools
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install --yes --no-install-recommends gcc-14 gcc-multilib clang lld cmake ninja-build libpng-dev
+      - name: Use GCC 14 for the game sources
+        if: runner.os == 'Linux'
+        run: |
+          mkdir -p "$RUNNER_TEMP/pc-compiler"
+          ln -s /usr/bin/gcc-14 "$RUNNER_TEMP/pc-compiler/gcc"
+          echo "$RUNNER_TEMP/pc-compiler" >> "$GITHUB_PATH"
+      - name: Cache Linux dependencies
+        if: runner.os == 'Linux'
+        uses: actions/cache@v4
+        with:
+          path: |
+            tmp/pc/linux-sysroot
+            tmp/pc/linux-sysroot-downloads
+            tmp/pc/sdl-source
+            tmp/pc/sdl-m32-portable
+          key: release-linux-${{ runner.os }}-${{ hashFiles('tools/pc/build_linux_sysroot.py', 'tools/pc/fetch_tools.py') }}
+      - name: Cache Windows dependencies
+        if: runner.os == 'Windows'
+        uses: actions/cache@v4
+        with:
+          path: |
+            tmp/pc/llvm-mingw
+            tmp/pc/win32-deps
+          key: release-windows-${{ runner.os }}-${{ hashFiles('tools/pc/build_win32_deps.py', 'tools/pc/fetch_tools.py') }}
+      - name: Archive version
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          if [ "$REF_TYPE" = tag ]; then
+            echo "PACKAGE_VERSION=$REF_NAME" >> "$GITHUB_ENV"
+          else
+            echo "PACKAGE_VERSION=dev-${GITHUB_SHA:0:12}" >> "$GITHUB_ENV"
+          fi
+      # Public runners never receive a game ROM. The regular PC workflow
+      # runs the full adapter suite; this checks setup and the archives.
+      - name: Build and package
+        run: python tools/pc/package.py "${{ matrix.system }}" --skip-smoke --version "$PACKAGE_VERSION"
+      - name: Test archive structure
+        run: python tools/pc/test_package.py --archives dist
+      - name: ROM setup tests (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          cmake -S . -B tmp/release-tests -DCMAKE_BUILD_TYPE=Release
+          cmake --build tmp/release-tests --target memories_game_files_test
+          ctest --test-dir tmp/release-tests -R '^pc_game_files_' --output-on-failure
+      - name: Upload installable archives
+        uses: actions/upload-artifact@v4
+        with:
+          name: yfm-redecomp-${{ matrix.system }}
+          path: |
+            dist/*.zip
+            dist/*.tar.gz
+            dist/*.sha256
+          if-no-files-found: error
+          retention-days: 14
+
+  draft-release:
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    needs: package
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: yfm-redecomp-*
+          merge-multiple: true
+          path: release
+      - name: Create or update draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        # A tag with a hyphen (v0.2.0-preview.1, v0.2.0-rc.1) is a preview:
+        # its draft is marked as a pre-release. A plain v0.2.0 is a release.
+        run: |
+          case "$RELEASE_TAG" in *-*) kind=--prerelease ;; *) kind=--prerelease=false ;; esac
+          if gh release view "$RELEASE_TAG" --json isDraft > release-state.json; then
+            python -c 'import json; assert json.load(open("release-state.json"))["isDraft"], "Refusing to replace a published release"'
+            gh release edit "$RELEASE_TAG" "$kind"
+          else
+            gh release create "$RELEASE_TAG" --verify-tag --draft "$kind" --title "$RELEASE_TAG" --generate-notes
+          fi
+          gh release upload "$RELEASE_TAG" release/* --clobber

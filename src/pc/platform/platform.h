@@ -1,15 +1,19 @@
 #ifndef MEMORIES_PC_PLATFORM_H
 #define MEMORIES_PC_PLATFORM_H
 #include <stdint.h>
+#include <stddef.h>
 
 /* Window, keyboard and frame clock. Everything except Platform_Pad and
  * Platform_VBlankCount must be called from the main thread only.
  * MEMORIES_HEADLESS=1 skips the window; MEMORIES_SCALE picks the zoom. */
 int Platform_Open(const char *title);
-/* A problem the player has to fix before the game can start, such as the
- * missing disc image: a message box where there is a window system to show
+/* A problem the player has to fix before the game can start:
+ * a message box where there is a window system to show
  * one (and not MEMORIES_HEADLESS), and standard error always. */
 void Platform_ShowError(const char *title, const char *message);
+/* First-run welcome and native ROM picker, before Platform_Open.
+ * 1: UTF-8 path selected, 0: cancelled, -1: unavailable/failed (why). */
+int Platform_SelectDisc(char *path, size_t size, char *why, size_t why_size);
 void Platform_OpenMods(void);
 void Platform_OpenControls(void);
 /* Show a folder in the system's file manager; 0 on success. */

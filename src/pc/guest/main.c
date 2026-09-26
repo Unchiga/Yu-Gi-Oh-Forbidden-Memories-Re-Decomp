@@ -62,7 +62,9 @@ static int load_game(const char *named)
     size_t size = 0;
     int result;
     if (named) return Memories_GuestLoadExe(named);
-    disc = GameFiles_Disc(why, sizeof(why));
+    result = GameFiles_Setup(why, sizeof(why));
+    if (!result) return 1; /* Cancelling setup is a normal exit. */
+    disc = result > 0 ? GameFiles_Disc(why, sizeof(why)) : NULL;
     if (!disc) {
         Platform_ShowError("Yu-Gi-Oh! Forbidden Memories", why);
         return -1;
@@ -132,7 +134,12 @@ int main(int argc, char **argv)
     Monitor_NoteSystem();
     CrashTest_Init();
     /* Guest globals are linked at fixed addresses: map before touching any. */
-    if (Memories_GuestMap() != 0 || load_game(exe) != 0 || Memories_ModulesInit() != 0) {
+    if (Memories_GuestMap() != 0) return 1;
+    {
+        int loaded = load_game(exe);
+        if (loaded) return loaded > 0 ? 0 : 1;
+    }
+    if (Memories_ModulesInit() != 0) {
         return 1;
     }
     if (Platform_Open("Yu-Gi-Oh Forbidden Memories Recompiled") != 0) {

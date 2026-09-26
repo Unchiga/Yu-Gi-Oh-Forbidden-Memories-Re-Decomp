@@ -1492,6 +1492,80 @@ static int software_gl_renderer(void)
                     strstr(name, "Software Rasterizer"));
 }
 
+typedef struct DiscSelection {
+    SDL_AtomicInt done;
+    char *path;
+    size_t size;
+    char *why;
+    size_t why_size;
+    int result;
+} DiscSelection;
+
+static void SDLCALL disc_selected(void *userdata, const char *const *files, int filter)
+{
+    DiscSelection *selection = userdata;
+    (void)filter;
+    if (!files) {
+        snprintf(selection->why, selection->why_size,
+                 "Could not open the ROM picker: %s\n\nYou can also put your .bin file in the game folder beside the program.",
+                 SDL_GetError());
+        selection->result = -1;
+    } else if (files[0]) {
+        if (strlen(files[0]) >= selection->size) {
+            snprintf(selection->why, selection->why_size, "The ROM path is too long. Move it to a folder with a shorter path.");
+            selection->result = -1;
+        } else {
+            snprintf(selection->path, selection->size, "%s", files[0]);
+            selection->result = 1;
+        }
+    }
+    /* SDL may invoke this callback on a worker thread. Publish only after
+     * copying the path/error; the file list belongs to SDL. */
+    SDL_SetAtomicInt(&selection->done, 1);
+}
+
+int Platform_SelectDisc(char *path, size_t size, char *why, size_t why_size)
+{
+    static const SDL_MessageBoxButtonData buttons[] = {
+        {SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT, 0, "Quit"},
+        {SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT, 1, "Choose ROM..."}
+    };
+    static const SDL_DialogFileFilter filters[] = {{"PlayStation disc image (.bin)", "bin;BIN"}};
+    const SDL_MessageBoxData welcome = {
+        SDL_MESSAGEBOX_INFORMATION, NULL, "Welcome to Forbidden Memories Recompiled",
+        "Choose your copy of Yu-Gi-Oh! Forbidden Memories to begin.\n\n"
+        "Select the .bin ROM from your USA disc (SLUS-01411).\n"
+        "Your ROM stays where it is. We'll remember its location for next time.\n\n"
+        "If you moved a previously selected ROM, choose its new location.",
+        2, buttons, NULL
+    };
+    DiscSelection selection = {0};
+    int button = 0;
+    Monitor_Modal(1);
+    if (!SDL_InitSubSystem(SDL_INIT_VIDEO)) {
+        snprintf(why, why_size, "Could not open ROM setup: %s", SDL_GetError());
+        Monitor_Modal(0);
+        return -1;
+    }
+    if (!SDL_ShowMessageBox(&welcome, &button)) {
+        snprintf(why, why_size, "Could not open ROM setup: %s", SDL_GetError());
+        selection.result = -1;
+    } else if (button == 1) {
+        selection.path = path;
+        selection.size = size;
+        selection.why = why;
+        selection.why_size = why_size;
+        SDL_ShowOpenFileDialog(disc_selected, &selection, NULL, filters, 1, NULL, false);
+        while (!SDL_GetAtomicInt(&selection.done)) {
+            SDL_PumpEvents(); /* Linux portal replies need the event loop. */
+            SDL_Delay(10);
+        }
+    }
+    SDL_QuitSubSystem(SDL_INIT_VIDEO);
+    Monitor_Modal(0);
+    return selection.result;
+}
+
 void Platform_ShowError(const char *title, const char *message)
 {
     const char *headless = getenv("MEMORIES_HEADLESS");
