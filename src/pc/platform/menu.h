@@ -70,8 +70,8 @@ typedef enum {
     MENU_ITEM_FILTER_LINEAR,
     MENU_ITEM_FILTER_SHARP,
     MENU_ITEM_HD_TEXT, /* Video > HD text, HD numbers and labels, Opponent's name for COM: */
-    MENU_ITEM_HD_HUD,  /* drawn by the OpenGL picture pass at Internal 2x and up (Menu_SetHdPicture) */
-    MENU_ITEM_OPPONENT_NAME
+    MENU_ITEM_HD_HUD,  /* drawn by the OpenGL picture pass at Internal 2x and up (Menu_SetHdPicture); */
+    MENU_ITEM_OPPONENT_NAME /* the name by the software GPU at 1x too */
 } MenuItemId;
 
 /* The stored settings (settings.txt in the user directory, see paths.h;

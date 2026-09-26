@@ -1395,7 +1395,7 @@ int HdText_NameBox(int wanted, int which, int *atlas_u, int *atlas_v, int *x, in
     const uint16_t *words = SoftGpu_Vram();
     int duelist = Tables_OpponentId();
     const char *name = Tables_DuelistShortName(duelist);
-    if (!name || which < 0 || which > 1 || wanted < 2 || wanted > MAX_FACTOR || !words ||
+    if (!name || which < 0 || which > 1 || wanted < 1 || wanted > MAX_FACTOR || !words ||
         panel_sum(words) != PANEL_SUM) {
         return 0;
     }
@@ -1416,6 +1416,14 @@ int HdText_NameBox(int wanted, int which, int *atlas_u, int *atlas_v, int *x, in
     *width = name_width[which];
     *height = NAME_ROWS;
     return 1;
+}
+
+const uint8_t *HdText_NamePixels(int which, int *x, int *y, int *width, int *height, int *stride)
+{
+    int atlas_u, atlas_v;
+    if (!HdText_NameBox(1, which, &atlas_u, &atlas_v, x, y, width, height)) return NULL;
+    *stride = side;
+    return atlas + (size_t)atlas_v * side + atlas_u;
 }
 
 int HdText_NameEnabled(void)

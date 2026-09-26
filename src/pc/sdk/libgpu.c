@@ -20,6 +20,7 @@
 #include "pc/mods/mods.h"
 #include "pc/render/texture_pack.h"
 #include "pc/render/texture_dump.h"
+#include "pc/text/hd_text.h"
 #include "pc/compat/signal.h"
 #include "pc/compat/pgxp.h"
 #include "pc/platform/settings.h"
@@ -359,6 +360,7 @@ static void flush_drawing(void)
         return;
     }
     clock_gettime(CLOCK_MONOTONIC, &t0);
+    SoftGpu_PanelName = HdText_NameEnabled() ? HdText_NamePixels : NULL;
     SoftGpu_SetPrecise(frame_precise, pending_precise);
     pending_precise = 0;
     SoftGpu_Gp0(frame_words, count);

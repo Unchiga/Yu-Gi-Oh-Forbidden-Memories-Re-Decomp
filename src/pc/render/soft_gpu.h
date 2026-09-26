@@ -51,6 +51,10 @@ int SoftGpu_WideFrameView(int x, int y, int w, int h, const uint16_t **pixels, i
  * primitives, whose widened picture the recorder draws (SoftGpu_WidePicture
  * is NULL then), so their pixels are not to be shown. */
 int SoftGpu_WideRastered(void);
+/* The opponent's name over the life-point panel at the console's
+ * resolution (hd_text.h, HdText_NamePixels): set while Video > Opponent's
+ * name for COM is on (libgpu.c), NULL otherwise, when nothing changes. */
+extern const uint8_t *(*SoftGpu_PanelName)(int which, int *x, int *y, int *width, int *height, int *stride);
 /* Scaled widened picture, SOFT_GPU_WIDTH * scale pixels per row. NULL at
  * console resolution, while a recorder draws the picture (it draws the
  * widened ones too), or if allocation failed. Call after WideFrame to also

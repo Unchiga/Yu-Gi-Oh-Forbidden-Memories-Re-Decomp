@@ -1183,14 +1183,22 @@ The pictures share HD text's atlas (four rows of cells above the titles).
 
 Video > Opponent's name for COM (`opponent_name`, `MEMORIES_OPPONENT_NAME=1`,
 off by default) shows the opponent's name in the life-point panel's COM
-box, in the OpenGL picture at 2x and up. A pack can't do this, because the
-panel is one texture for every opponent.
+box, in the OpenGL picture at 2x and up and at the console's resolution. A
+pack can't do this, because the panel is one texture for every opponent.
+At 1x the software GPU draws the same box right after the panel sprite
+(`name_over_panel` in `soft_gpu.c`, through the `SoftGpu_PanelName` hook
+that `libgpu.c` sets while the option is on): its palette indices, made
+at 1x (`HdText_NamePixels`), through the panel's CLUT, so the inactive
+side's dimming applies and whatever the game draws over the panel stays
+over it. With the option off nothing is drawn.
 
-This item, HD text and HD numbers and labels are dimmed in the Video menu
-when they could not show: "needs OpenGL 3" when the picture pass is off (no
-OpenGL 3, the SDL renderer fallback, `MEMORIES_GL_PICTURE=0`, the X11
-backend) and "needs Internal 2x" at console resolution (`Menu_SetHdPicture`,
-`menu.c`). Before, they could be switched on and silently did nothing.
+HD text and HD numbers and labels are dimmed in the Video menu when they
+could not show: "needs OpenGL 3" when the picture pass is off (no OpenGL 3,
+the SDL renderer fallback, `MEMORIES_GL_PICTURE=0`, the X11 backend) and
+"needs Internal 2x" at console resolution (`Menu_SetHdPicture`, `menu.c`).
+Before, they could be switched on and silently did nothing. This item works
+at 1x with or without OpenGL, so it is dimmed only at 2x and up without the
+picture pass ("needs OpenGL 3 or 1x").
 
 - The name comes from the opponent id (`gDuel_bOpponentID`, 1-39) through
   `Tables_DuelistShortName`. A name of up to 11 letters is shown whole.
