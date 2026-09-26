@@ -583,7 +583,7 @@ static inline __attribute__((always_inline)) void plot(int x, int y, int r, int 
         if (TextureDump_Shadow) memset(TextureDump_Shadow + (tag - TextureDump_Tags) * 4, 0, 4 * sizeof(uint16_t));
     }
     if (flags & 4) {
-        source = texel(u, v);
+        source = flags & 16 ? (uint16_t)u : texel(u, v); /* 16: the texel's word given in u */
         if (!source) {
             return;
         }
@@ -1028,6 +1028,27 @@ static size_t polygon(const uint32_t *words, size_t count)
     return need;
 }
 
+const uint8_t *(*SoftGpu_PanelName)(int which, int *x, int *y, int *width, int *height, int *stride);
+
+/* The opponent's name over the life-point panel just drawn, and You for
+ * YOU, at the console's resolution (the OpenGL picture draws them above
+ * it): the boxes' palette indices through the panel's CLUT, as the panel's
+ * own texels would be, so the inactive side's dimming applies. */
+static void name_over_panel(const Vertex *base, int flags)
+{
+    int which, x, y, width, height, stride, i, j;
+    for (which = 0; which < 2; which++) {
+        const uint8_t *box = SoftGpu_PanelName(which, &x, &y, &width, &height, &stride);
+        if (!box) return;
+        for (j = 0; j < height; j++) {
+            for (i = 0; i < width; i++) {
+                uint16_t word = vram[gpu.clut_y * SOFT_GPU_WIDTH + gpu.clut_x + box[(size_t)j * stride + i]];
+                plot(base->x + x + i, base->y + y + j, base->r, base->g, base->b, word, 0, (flags & 3) | 4 | 16);
+            }
+        }
+    }
+}
+
 static size_t rectangle(const uint32_t *words, size_t count)
 {
     static const int sizes[4] = {0, 1, 8, 16};
@@ -1080,6 +1101,12 @@ static size_t rectangle(const uint32_t *words, size_t count)
         break;
     CASE(0) CASE(1) CASE(2) CASE(3) CASE(4) CASE(5) CASE(6) CASE(7)
 #undef CASE
+    }
+    /* The life-point panel (gl_picture.c's name_over_panel finds it so). */
+    if (SoftGpu_PanelName && scale == 1 && textured && texture_source == vram && gpu.depth == 0 &&
+        gpu.page_x == 704 && gpu.page_y == 0 && (gpu.clut_x == 736 || gpu.clut_x == 752) && gpu.clut_y == 252 &&
+        base.u == 128 && base.v == 128 && w == 64 && h == 40) {
+        name_over_panel(&base, flags);
     }
     return need;
 }
