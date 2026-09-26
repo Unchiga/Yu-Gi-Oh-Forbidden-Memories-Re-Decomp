@@ -609,18 +609,25 @@ void Menu_SetItemEnabled(int id, int enabled)
 
 static int hd_picture;
 
-/* The HD items take effect in the OpenGL pass at Internal 2x and up. */
+/* The HD items take effect in the OpenGL pass at Internal 2x and up; the
+ * opponent's name also at 1x, where the software GPU draws it. */
 static void update_hd_items(void)
 {
     static const int ids[] = {MENU_ITEM_HD_TEXT, MENU_ITEM_HD_HUD, MENU_ITEM_OPPONENT_NAME};
-    const char *why = !hd_picture ? "needs OpenGL 3" : Settings_Get(SET_INTERNAL_SCALE) < 2 ? "needs Internal 2x" : NULL;
+    int console = Settings_Get(SET_INTERNAL_SCALE) < 2;
+    const char *hd_why = !hd_picture ? "needs OpenGL 3" : console ? "needs Internal 2x" : NULL;
+    const char *name_why = !hd_picture && !console ? "needs OpenGL 3 or 1x" : NULL;
     int menu, item;
     unsigned i;
-    for (i = 0; i < sizeof(ids) / sizeof(ids[0]); i++) Menu_SetItemEnabled(ids[i], !why);
+    for (i = 0; i < sizeof(ids) / sizeof(ids[0]); i++) {
+        Menu_SetItemEnabled(ids[i], !(ids[i] == MENU_ITEM_OPPONENT_NAME ? name_why : hd_why));
+    }
     for (menu = 0; menu < MENU_COUNT; menu++) {
         for (item = 0; item < menus[menu].count; item++) {
             for (i = 0; i < sizeof(ids) / sizeof(ids[0]); i++) {
-                if (menus[menu].items[item].id == ids[i]) menus[menu].items[item].shortcut = why;
+                if (menus[menu].items[item].id == ids[i]) {
+                    menus[menu].items[item].shortcut = ids[i] == MENU_ITEM_OPPONENT_NAME ? name_why : hd_why;
+                }
             }
         }
     }
