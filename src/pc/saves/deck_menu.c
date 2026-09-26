@@ -96,6 +96,9 @@ static unsigned seen_saves, seen_loads;
 enum { PICK_NONE, PICK_OPEN, PICK_CHOSEN };
 static int picking;
 static int duel_pick; /* the list is the duel's (DeckMenu_DuelChestEntry) */
+/* Before a duel the list shows only when F6 in the chest asked for it:
+ * the duel's own way in stays the game's. */
+static int duel_list;
 static int list_after_build_deck; /* F6 in Build Deck: its way out goes to the list */
 extern u8 D_8009B269; /* main_mode_state.h: where Build Deck returns to */
 
@@ -330,7 +333,7 @@ void DeckMenu_State(MemoriesState *state)
         seen_saves = SaveMenu_SaveCount();
         seen_loads = SaveMenu_LoadCount();
         picking = PICK_NONE;
-        list_after_build_deck = 0;
+        list_after_build_deck = duel_list = duel_pick = 0;
         requested = allowed = holding = 0;
         previous_bits = 0;
         DeckMenu_Close();
@@ -393,10 +396,6 @@ int DeckMenu_BuildDeckEntry(void)
     duel_pick = 0;
     return chest_entry();
 }
-
-/* Before a duel the list shows only when F6 in the chest asked for it:
- * the duel's own way in stays the game's. */
-static int duel_list;
 
 int DeckMenu_DuelChestEntry(void)
 {
