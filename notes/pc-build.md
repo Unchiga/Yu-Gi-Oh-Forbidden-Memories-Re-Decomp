@@ -1186,6 +1186,12 @@ off by default) shows the opponent's name in the life-point panel's COM
 box, in the OpenGL picture at 2x and up. A pack can't do this, because the
 panel is one texture for every opponent.
 
+This item, HD text and HD numbers and labels are dimmed in the Video menu
+when they could not show: "needs OpenGL 3" when the picture pass is off (no
+OpenGL 3, the SDL renderer fallback, `MEMORIES_GL_PICTURE=0`, the X11
+backend) and "needs Internal 2x" at console resolution (`Menu_SetHdPicture`,
+`menu.c`). Before, they could be switched on and silently did nothing.
+
 - The name comes from the opponent id (`gDuel_bOpponentID`, 1-39) through
   `Tables_DuelistShortName`. A name of up to 11 letters is shown whole.
   Longer ones show the part that tells the duelist apart, a High Mage or a

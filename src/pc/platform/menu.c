@@ -114,9 +114,9 @@ static Menu menus[MENU_COUNT] = {
               {"Scaling", 0, ITEM_SUBMENU, 0, -1, SUB_SCALING, ITEM_GROUP_BREAK},
               {"Aspect Ratio", 0, ITEM_SUBMENU, 0, -1, SUB_ASPECT},
               {"Resolution", 0, ITEM_SUBMENU, 0, -1, SUB_RESOLUTION},
-              {"HD text", 0, ITEM_CHECK, 0, SET_HD_TEXT},
-              {"HD numbers and labels", 0, ITEM_CHECK, 0, SET_HD_HUD},
-              {"Opponent's name for COM", 0, ITEM_CHECK, 0, SET_OPPONENT_NAME},
+              {"HD text", 0, ITEM_CHECK, MENU_ITEM_HD_TEXT, SET_HD_TEXT},
+              {"HD numbers and labels", 0, ITEM_CHECK, MENU_ITEM_HD_HUD, SET_HD_HUD},
+              {"Opponent's name for COM", 0, ITEM_CHECK, MENU_ITEM_OPPONENT_NAME, SET_OPPONENT_NAME},
               {"Anti-aliasing", 0, ITEM_SUBMENU, 0, -1, SUB_ANTIALIAS},
               {"Filtering", 0, ITEM_SUBMENU, MENU_ITEM_FILTER, -1, SUB_FILTER, ITEM_GROUP_BREAK},
               {"VSync", 0, ITEM_CHECK, MENU_ITEM_VSYNC, SET_VSYNC},
@@ -551,6 +551,8 @@ void Menu_LoadSettings(void)
     Mods_Load(); /* the mods the settings say are applied, once they are read */
 }
 
+static void update_hd_items(void);
+
 static void setting_changed(SettingId id, int value)
 {
     switch (id) {
@@ -560,7 +562,7 @@ static void setting_changed(SettingId id, int value)
     case SET_STREAM_VOLUME: Spu_SetBusVolume(SPU_BUS_STREAM, value); break;
     case SET_AUDIO_INTERPOLATION: Spu_SetInterpolation((SpuInterpolation)value); break;
     case SET_SCALE: Platform_SetScale(value); break;
-    case SET_INTERNAL_SCALE: Memories_SetInternalScale(value); break;
+    case SET_INTERNAL_SCALE: Memories_SetInternalScale(value); update_hd_items(); break;
     case SET_SPEED: Platform_SetClockRate(value); break;
     case SET_FPS: Platform_SetPresentCap(value); break;
     case SET_MENU_SCALE: Platform_ApplyDisplaySettings(); break;
@@ -587,6 +589,7 @@ void Menu_Init(void)
     load_font();
     layout_bar();
     Settings_Observe(setting_changed);
+    update_hd_items(); /* until the backend says its picture pass is on */
     ready = 1;
 }
 
@@ -602,6 +605,31 @@ void Menu_SetItemEnabled(int id, int enabled)
             }
         }
     }
+}
+
+static int hd_picture;
+
+/* The HD items take effect in the OpenGL pass at Internal 2x and up. */
+static void update_hd_items(void)
+{
+    static const int ids[] = {MENU_ITEM_HD_TEXT, MENU_ITEM_HD_HUD, MENU_ITEM_OPPONENT_NAME};
+    const char *why = !hd_picture ? "needs OpenGL 3" : Settings_Get(SET_INTERNAL_SCALE) < 2 ? "needs Internal 2x" : NULL;
+    int menu, item;
+    unsigned i;
+    for (i = 0; i < sizeof(ids) / sizeof(ids[0]); i++) Menu_SetItemEnabled(ids[i], !why);
+    for (menu = 0; menu < MENU_COUNT; menu++) {
+        for (item = 0; item < menus[menu].count; item++) {
+            for (i = 0; i < sizeof(ids) / sizeof(ids[0]); i++) {
+                if (menus[menu].items[item].id == ids[i]) menus[menu].items[item].shortcut = why;
+            }
+        }
+    }
+}
+
+void Menu_SetHdPicture(int on)
+{
+    hd_picture = !!on;
+    update_hd_items();
 }
 
 void Menu_SetVisible(int wanted) { visible = !!wanted; }
