@@ -1081,7 +1081,8 @@ text's letters in a font at the internal resolution instead of drawing the
 retail 8x12 and 16x16 cells texel by texel (`src/pc/text/hd_text.c`). It is
 a change to the OpenGL picture above, so it shows at internal 2x and up,
 in widescreen too. The software picture (`MEMORIES_GL_PICTURE=0`) and 1x
-are as before.
+are as before; at 1x (the default resolution) Video > HD text and HD
+numbers and labels are dimmed (`hd_picture_items` in `menu.c`).
 
 The retail font is anti-aliased in its indices, which the text palettes run
 from black up to the text's colour. The dark outline is the lowest index
@@ -1184,9 +1185,7 @@ The pictures share HD text's atlas (four rows of cells above the titles).
 Video > Opponent's name for COM (`opponent_name`, `MEMORIES_OPPONENT_NAME=1`,
 off by default) shows the opponent's name in the life-point panel's COM
 box, in the OpenGL picture at 2x and up. A pack can't do this, because the
-panel is one texture for every opponent. At the console's resolution (the
-default) the item is dimmed, as are HD text and HD numbers and labels,
-which the same picture draws (`hd_picture_items` in `menu.c`).
+panel is one texture for every opponent.
 
 - The name comes from the opponent id (`gDuel_bOpponentID`, 1-39) through
   `Tables_DuelistShortName`. A name of up to 11 letters is shown whole.

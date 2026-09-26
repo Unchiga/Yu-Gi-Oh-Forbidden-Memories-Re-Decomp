@@ -116,7 +116,7 @@ static Menu menus[MENU_COUNT] = {
               {"Resolution", 0, ITEM_SUBMENU, 0, -1, SUB_RESOLUTION},
               {"HD text", 0, ITEM_CHECK, MENU_ITEM_HD_PICTURE, SET_HD_TEXT},
               {"HD numbers and labels", 0, ITEM_CHECK, MENU_ITEM_HD_PICTURE, SET_HD_HUD},
-              {"Opponent's name for COM", 0, ITEM_CHECK, MENU_ITEM_HD_PICTURE, SET_OPPONENT_NAME},
+              {"Opponent's name for COM", 0, ITEM_CHECK, 0, SET_OPPONENT_NAME},
               {"Anti-aliasing", 0, ITEM_SUBMENU, 0, -1, SUB_ANTIALIAS},
               {"Filtering", 0, ITEM_SUBMENU, MENU_ITEM_FILTER, -1, SUB_FILTER, ITEM_GROUP_BREAK},
               {"VSync", 0, ITEM_CHECK, MENU_ITEM_VSYNC, SET_VSYNC},
@@ -533,9 +533,9 @@ void Menu_DrawTextScaled(MenuCanvas *into, int x, int middle, const char *text, 
     }
 }
 
-/* HD text, HD numbers and labels and the opponent's name are drawn by the
- * OpenGL picture at 2x and up: at the console's resolution they would do
- * nothing, so they are dimmed there. */
+/* HD text and HD numbers and labels are drawn by the OpenGL picture at 2x
+ * and up: at the console's resolution they would do nothing, so they are
+ * dimmed there. */
 static void hd_picture_items(int internal_scale)
 {
     Menu_SetItemEnabled(MENU_ITEM_HD_PICTURE, internal_scale >= 2);
