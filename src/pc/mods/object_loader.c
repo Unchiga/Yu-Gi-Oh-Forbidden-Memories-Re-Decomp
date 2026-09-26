@@ -317,6 +317,76 @@ static int keep_symbols(Loader *loader, LoadedObject *object)
     return 0;
 }
 
+static uint32_t mix(uint32_t hash, const void *data, size_t size)
+{
+    const unsigned char *at = data;
+    while (size--) hash = (hash ^ *at++) * 16777619u;
+    return hash;
+}
+
+static uint32_t mix32(uint32_t hash, uint32_t value)
+{
+    unsigned char bytes[4] = {(unsigned char)value, (unsigned char)(value >> 8), (unsigned char)(value >> 16),
+                              (unsigned char)(value >> 24)};
+    return mix(hash, bytes, 4);
+}
+
+/* A symbol as a relocation sees it, in terms that do not depend on the
+ * symbol table's order: a host name, a constant, or a place in the image. */
+static uint32_t mix_symbol(const Loader *loader, uint32_t hash, unsigned symbol)
+{
+    const unsigned char *at = loader->file + loader->symtab->offset + symbol * 16;
+    unsigned index = u16(at + 14);
+    if (!symbol) return mix32(hash, 0);
+    if (index == SHN_UNDEF) {
+        const char *name = string_at(loader, loader->strtab, u32(at));
+        return mix(mix32(hash, 1), name, strlen(name) + 1);
+    }
+    if (index == SHN_ABS) return mix32(mix32(hash, 2), u32(at + 4));
+    return mix32(mix32(mix32(hash, 3), loader->place[index]), u32(at + 4));
+}
+
+/* LoadedObject.hash. Only called once relocate and keep_symbols have
+ * checked every index and name it reads. */
+static uint32_t fingerprint(const Loader *loader)
+{
+    uint32_t hash = 2166136261u;
+    unsigned i, count = loader->symtab->size / 16;
+    for (i = 0; i < loader->section_count; i++) {
+        const Section *section = &loader->sections[i];
+        if (loader->place[i] == NOT_LOADED) continue;
+        hash = mix32(mix32(mix32(hash, loader->place[i]), section->size), section->type);
+        if (section->type == SHT_PROGBITS) hash = mix(hash, loader->file + section->offset, section->size);
+    }
+    for (i = 0; i < loader->section_count; i++) {
+        const Section *table = &loader->sections[i];
+        unsigned r;
+        if (table->type != SHT_REL || table->info >= loader->section_count || loader->place[table->info] == NOT_LOADED) {
+            continue;
+        }
+        for (r = 0; r < table->size / 8; r++) {
+            const unsigned char *at = loader->file + table->offset + r * 8;
+            uint32_t info = u32(at + 4);
+            if ((info & 0xff) == R_386_NONE) continue;
+            hash = mix32(mix32(mix32(hash, loader->place[table->info]), u32(at)), info & 0xff);
+            hash = mix_symbol(loader, hash, info >> 8);
+        }
+    }
+    /* The names the game looks the mod up by (MemoriesModInit). */
+    for (i = 1; i < count; i++) {
+        const unsigned char *at = loader->file + loader->symtab->offset + i * 16;
+        unsigned index = u16(at + 14);
+        const char *name = string_at(loader, loader->strtab, u32(at));
+        if (at[12] >> 4 == STB_LOCAL || index == SHN_UNDEF || index >= loader->section_count ||
+            loader->place[index] == NOT_LOADED) {
+            continue;
+        }
+        hash = mix(hash, name, strlen(name) + 1);
+        hash = mix_symbol(loader, hash, i);
+    }
+    return hash;
+}
+
 int ObjectLoader_Load(const void *data, size_t size, ObjectResolver resolve, void *context,
                       LoadedObject *object, char *error, size_t error_size)
 {
@@ -355,6 +425,7 @@ int ObjectLoader_Load(const void *data, size_t size, ObjectResolver resolve, voi
     if (bind_symbols(&loader, image, resolve, context) || relocate(&loader, image) || keep_symbols(&loader, object)) {
         goto done;
     }
+    object->hash = fingerprint(&loader);
     if (code_size && mprotect(image, code_size, PROT_READ | PROT_EXEC)) {
         fail(&loader, "could not make its code executable");
         goto done;

@@ -158,6 +158,31 @@ static void good(const char *directory)
     free(data);
 }
 
+static uint32_t hash_of(const char *directory, const char *name)
+{
+    size_t size;
+    unsigned char *data = read_file(directory, name, &size);
+    LoadedObject object;
+    char error[256];
+    uint32_t hash = 0;
+    CHECK(!ObjectLoader_Load(data, size, resolve, NULL, &object, error, sizeof(error)), "%s: %s", name, error);
+    if (object.image) hash = object.hash;
+    ObjectLoader_Free(&object);
+    free(data);
+    return hash;
+}
+
+/* Save states keep a mod's hash, so it must follow the code and not the
+ * debugging information, which records the build folder and each header's
+ * MD5 (a header edit that leaves the code alone). */
+static void hashes(const char *directory)
+{
+    uint32_t good = hash_of(directory, "good.o");
+    CHECK(good == hash_of(directory, "good-nodebug.o"), "debugging information changes the hash");
+    CHECK(good == hash_of(directory, "good-moved.o"), "the source folder changes the hash");
+    CHECK(good != hash_of(directory, "good-o1.o"), "different code hashes the same");
+}
+
 /* Every byte of the headers, the section table and the symbol and
  * relocation tables set to a few values in turn. The loader may accept a
  * damaged file (a changed byte of code is still code) but must not crash on
@@ -206,6 +231,7 @@ int main(int argc, char **argv)
     const char *directory = argc > 1 ? argv[1] : ".";
     CHECK(Mods_LibcSorted(), "the C library list is out of order");
     good(directory);
+    hashes(directory);
     expect_failure(directory, "pic.o", "position-independent");
     expect_failure(directory, "unknown.o", "needs missing_function, which this game does not provide");
     expect_failure(directory, "common.o", "COMMON");

@@ -1108,8 +1108,7 @@ static void *load_object(Mod *mod, const char *path)
         note(mod, "%s %s", mod->library, error);
         return NULL;
     }
-    mod->code_hash = 2166136261u;
-    for (long i = 0; i < size; i++) mod->code_hash = (mod->code_hash ^ data[i]) * 16777619u;
+    mod->code_hash = mod->object.hash;
     free(data);
     entry = ObjectLoader_Symbol(&mod->object, "MemoriesModInit");
     if (!entry) {
