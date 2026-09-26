@@ -1,43 +1,43 @@
-# Yu-Gi-Oh! Forbidden Memories Re-Decomp
+# Yu-Gi-Oh! Forbidden Memories Recompiled
 
-> [!WARNING]
-> Very much a work in progress.
+**Yu-Gi-Oh! Forbidden Memories** (PS1, USA) rebuilt from its decompiled source as a
+native PC game for Windows and Linux. Bring your own disc image; no game data is
+included.
 
-A byte-matching decompilation of the North American PlayStation release of
-**Yu-Gi-Oh! Forbidden Memories** (`SLUS-01411`), rebuilt as a native PC game
-for Linux and Windows.
+![Your field at 4x resolution with 3D Monsters](docs/screenshots/field.jpg)
 
-No game data is included. Bring your own dump of the disc.
+## Features
 
-## Release builds
+- Up to 4x internal resolution, widescreen and HD text
+- **3D Monsters**: face-up monsters stand on the field as their battle models
+- Optional **Forbidden Memories HD** pack: redrawn cards, frames and portraits
+- Mods: new cards past the original 722, fusions, textures, music, gameplay tables
+- Save slots, fusion helper, card drop rates, rebindable controls
 
-Extract the Windows ZIP or Linux tar.gz and run `memories-pc.exe` or
-`./memories-pc`. The first launch welcomes you and asks you to choose your
-USA disc's `.bin` ROM. Its location is remembered for future launches.
+![HD Free Duel portraits](docs/screenshots/portraits.jpg)
 
-The [PC release packages workflow](.github/workflows/pc-release.yml) builds
-both platforms for pull requests and updates to `master`. Version tags
-(`v*`) prepare a draft GitHub release with both archives.
-See [release packaging](notes/pc-release.md) for the layout and checks.
+![Cards added by a mod](docs/screenshots/more-cards.jpg)
 
-## Play from source
+## Play
 
-1. Put your disc image (the `.bin` of the USA disc, any file name) in `game/`.
-2. Run `./play.sh` on Linux or `play.bat` on Windows.
+Download the latest build from [Releases](https://github.com/Unchiga/Yu-Gi-Oh-Forbidden-Memories-Re-Decomp/releases),
+extract it and run `memories-pc.exe` (Windows) or `./memories-pc` (Linux). On first
+launch, pick your USA disc's `.bin`. For the HD pack, extract its zip next to the game.
 
-The first run builds the game, fetching what it needs into `tmp/`; after that
-it starts straight away. Linux needs `gcc` and `python3` installed (`play.sh`
-says so if they are missing); Windows needs nothing. See
-[PC build](notes/pc-build.md).
+**From source:** put the `.bin` in `game/` and run `play.bat` or `./play.sh`. The first
+run builds everything (Linux needs `gcc` and `python3`). See [PC build](notes/pc-build.md).
 
-## Match the PS1 executable
+## Decompilation
+
+Every game function matches the original executable byte for byte:
 
 ```sh
-make tools          # pinned toolchain, installed under tools/
-make match          # rebuild the PS1 executable byte-for-byte (see notes/setup.md)
+make tools   # pinned toolchain
+make match   # rebuild SLUS_014.11 exactly (see notes/setup.md)
 ```
 
-## Progress
+<details>
+<summary>Progress</summary>
 
 <!-- BEGIN GENERATED PROGRESS -->
 
@@ -66,16 +66,16 @@ _Generated from `config/slus_01411/functions.csv` and `config/slus_01411/overlay
 
 <!-- END GENERATED PROGRESS -->
 
-## More
+</details>
 
-- [Fusion helper](notes/fusion-helper.md) · [Card drops](notes/card-drops.md)
-- [Setup](notes/setup.md) · [Build](notes/build.md) · [PC build](notes/pc-build.md) · [Modding](notes/modding.md)
+## Docs
+
+[Modding](notes/modding.md) · [More cards](notes/more-cards.md) · [Fusion helper](notes/fusion-helper.md) ·
+[Card drops](notes/card-drops.md) · [Setup](notes/setup.md) · [Build](notes/build.md) · [Releases](notes/pc-release.md)
 
 ## License
 
-The PC port (`src/pc/`, `tools/pc/`, `tests/pc/`, `mods/`, `examples/` and the
-build and play scripts) is under the [MIT License](LICENSE). Use it, but credit
-this project: keep the copyright notice in anything that copies or builds on
-it, and please link back here. The upstream decompilation belongs to
-[its authors](https://github.com/krystalgamer/memories-decomp); the game and
-its data belong to Konami.
+The PC port (`src/pc/`, `tools/pc/`, `tests/pc/`, `mods/`, `examples/` and the build
+and play scripts) is [MIT](LICENSE): keep the copyright notice and please link back
+here. The decompilation builds on [memories-decomp](https://github.com/krystalgamer/memories-decomp)
+by its authors. Yu-Gi-Oh! and Forbidden Memories belong to Konami.
