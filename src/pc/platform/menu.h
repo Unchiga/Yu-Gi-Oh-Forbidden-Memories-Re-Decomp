@@ -68,7 +68,10 @@ typedef enum {
     MENU_ITEM_DECKS, /* Game > Deck slots: enabled where the deck can change (deck_menu.c) */
     MENU_ITEM_FILTER_NEAREST,
     MENU_ITEM_FILTER_LINEAR,
-    MENU_ITEM_FILTER_SHARP
+    MENU_ITEM_FILTER_SHARP,
+    MENU_ITEM_HD_TEXT, /* Video > HD text, HD numbers and labels, Opponent's name for COM: */
+    MENU_ITEM_HD_HUD,  /* drawn by the OpenGL picture pass at Internal 2x and up (Menu_SetHdPicture) */
+    MENU_ITEM_OPPONENT_NAME
 } MenuItemId;
 
 /* The stored settings (settings.txt in the user directory, see paths.h;
@@ -102,6 +105,10 @@ int Menu_Event(const MenuEvent *event, int *quit);
 /* Enable or disable an item by its backend-independent id. Disabled items
  * are dimmed, cannot be selected with the keyboard and ignore clicks. */
 void Menu_SetItemEnabled(int id, int enabled);
+/* Whether the backend runs the OpenGL picture pass (gl_picture.h). Without
+ * it, or at console resolution, the Video menu's HD items could show
+ * nothing: they are dimmed with the reason beside them. */
+void Menu_SetHdPicture(int on);
 
 /* Provided by the platform for the Video menu. */
 int Platform_Scale(void);
