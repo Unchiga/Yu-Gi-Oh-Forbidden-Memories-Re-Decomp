@@ -70,10 +70,16 @@ if WINDOWS:
 # VBlank handler updates, and must not be hoisted out of their loops.
 NATIVE_CFLAGS = ["-m32", "-std=gnu11", "-O2", "-g", "-Wall", "-fno-pie", "-fno-omit-frame-pointer", "-fno-strict-aliasing",
                  "-Wno-builtin-declaration-mismatch", "-DMEMORIES_PC", "-D_LANGUAGE_C", "-DLANGUAGE_C", "-Isrc",
-                 "-I/usr/include/freetype2"]
+                 "-I/usr/include/freetype2",
+                 # 64-bit stat/readdir/lseek: the 32-bit calls fail with
+                 # EOVERFLOW on a file whose inode number needs more than 32
+                 # bits (btrfs, XFS, NFS, a mounted Windows drive), so the
+                 # disc, the mods and the user folder could not be read there.
+                 "-D_FILE_OFFSET_BITS=64"]
 if WINDOWS:
     NATIVE_CFLAGS = [f for f in NATIVE_CFLAGS if f not in ("-m32", "-fno-pie", "-I/usr/include/freetype2",
-                                                           "-Wno-builtin-declaration-mismatch")] + [
+                                                           "-Wno-builtin-declaration-mismatch",
+                                                           "-D_FILE_OFFSET_BITS=64")] + [
         f"-I{WIN32_DEPS}/sdl/include", f"-I{WIN32_DEPS}/include", f"-I{WIN32_DEPS}/include/freetype2",
         "-mno-ms-bitfields"]  # the game's structures, shared with native code (see CFLAGS)
 if PORTABLE:
