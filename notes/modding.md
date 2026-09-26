@@ -260,11 +260,10 @@ range, a `row_offsets` list whose length is not `rows` (the image is then
 read with the stride), an entry without `file` or `archive`, a `setting` the
 mod does not declare (the image is still used), or more than 65535 images in
 all. Loading does not open the images (thousands of opens held the frame
-for seconds on a cold disc): a file that is there but is no PNG shows in
-the log, `cannot be read`, the first time it is decoded, and the original
-texture stays. PNGs are decoded the first time the game needs them;
-at load only their signature is checked, and a PNG that fails to decode
-later is reported on the console.
+for seconds on a cold disc), only checks that each is there. PNGs are
+decoded the first time the game needs them; a file that is not a PNG, or
+fails to decode, is reported on the console then (`cannot be read`) and the
+original texture stays.
 
 `tools/pc/upscale_pack.py` makes a pack of upscaled images from an extracted
 set with Upscayl's command-line binary (Real-ESRGAN on the GPU): the same
